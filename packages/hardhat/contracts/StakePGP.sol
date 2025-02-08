@@ -21,6 +21,7 @@ contract StakePGP {
         string publicKey;      // PGP public key
         uint256 stakedAmount; // Amount of ETH staked
         uint256 challengeDeadline; // Deadline for responding to challenge
+        uint256 stakeTimestamp; // When the stake was created
         address challenger;    // Address of the current challenger
         uint256 challengeFee; // Amount of ETH held for current challenge
         bool isStaked;        // Whether this address has an active stake
@@ -30,12 +31,14 @@ contract StakePGP {
     uint256 public constant CHALLENGE_DURATION = 3 days;
     uint256 public constant MINIMUM_STAKE = 0.1 ether;
     uint256 public constant CHALLENGE_FEE = 0.05 ether;
+    uint256 public constant MINIMUM_STAKE_DURATION = 30 days;
 
     // Events
     event Staked(address indexed user, string publicKey, uint256 amount);
     event Challenged(address indexed user, address indexed challenger);
     event ChallengeResolved(address indexed user, address indexed challenger, bool success);
     event StakeWithdrawn(address indexed user, uint256 amount);
+    event LockExtended(address indexed user, uint256 newUnlockTime);
 
     // Errors
     error InsufficientStake();
@@ -47,6 +50,8 @@ contract StakePGP {
     error ChallengeExpired();
     error ChallengePending();
     error NotChallenger();
+    error StakeLocked();
+    error InvalidExtension();
 
     /**
      * @dev Internal function to transfer ETH to an address
@@ -70,6 +75,7 @@ contract StakePGP {
             publicKey: publicKey,
             stakedAmount: msg.value,
             challengeDeadline: 0,
+            stakeTimestamp: block.timestamp,
             challenger: address(0),
             challengeFee: 0,
             isStaked: true
@@ -147,18 +153,59 @@ contract StakePGP {
     }
 
     /**
-     * @notice Allows a user to withdraw their stake if they're not being challenged
+     * @notice Allows a user to withdraw their stake if they're not being challenged and minimum duration has passed
      */
     function withdrawStake() external {
         UserStake storage userStake = stakes[msg.sender];
         if (!userStake.isStaked) revert NoActiveStake();
         if (userStake.challenger != address(0)) revert ChallengePending();
+        if (block.timestamp < userStake.stakeTimestamp + MINIMUM_STAKE_DURATION) revert StakeLocked();
 
         uint256 amount = userStake.stakedAmount;
         delete stakes[msg.sender];
 
         _transferFunds(msg.sender, amount);
         emit StakeWithdrawn(msg.sender, amount);
+    }
+
+    /**
+     * @notice Allows a user to extend their stake's lock period
+     * @param additionalTime The number of seconds to extend the lock by (must be at least MINIMUM_STAKE_DURATION)
+     */
+    function extendLock(uint256 additionalTime) external {
+        UserStake storage userStake = stakes[msg.sender];
+        if (!userStake.isStaked) revert NoActiveStake();
+        if (additionalTime < MINIMUM_STAKE_DURATION) revert InvalidExtension();
+
+        uint256 currentUnlockTime = userStake.stakeTimestamp + MINIMUM_STAKE_DURATION;
+        uint256 newUnlockTime;
+        
+        // If the stake is already unlocked, extend from current time
+        if (block.timestamp >= currentUnlockTime) {
+            newUnlockTime = block.timestamp + additionalTime;
+            userStake.stakeTimestamp = newUnlockTime - MINIMUM_STAKE_DURATION;
+        } else {
+            // If still locked, extend from current unlock time
+            newUnlockTime = currentUnlockTime + additionalTime;
+            userStake.stakeTimestamp = newUnlockTime - MINIMUM_STAKE_DURATION;
+        }
+
+        emit LockExtended(msg.sender, newUnlockTime);
+    }
+
+    /**
+     * @notice Returns the remaining lock time for a stake in seconds
+     * @param user The address of the staked user
+     * @return remainingTime Time remaining until stake can be withdrawn (0 if withdrawable or no stake)
+     */
+    function getRemainingLockTime(address user) external view returns (uint256 remainingTime) {
+        UserStake storage userStake = stakes[user];
+        if (!userStake.isStaked) return 0;
+        
+        uint256 unlockTime = userStake.stakeTimestamp + MINIMUM_STAKE_DURATION;
+        if (block.timestamp >= unlockTime) return 0;
+        
+        return unlockTime - block.timestamp;
     }
 
     /**
