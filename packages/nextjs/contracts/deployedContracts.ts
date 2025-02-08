@@ -4,6 +4,324 @@
  */
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
-const deployedContracts = {} as const;
+const deployedContracts = {
+  31337: {
+    StakePGP: {
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      abi: [
+        {
+          inputs: [],
+          name: "AlreadyChallenged",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "AlreadyStaked",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "ChallengeExpired",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "ChallengePending",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "InsufficientChallengeFee",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "InsufficientStake",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NoActiveStake",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NotChallenged",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NotChallenger",
+          type: "error",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "challenger",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "bool",
+              name: "success",
+              type: "bool",
+            },
+          ],
+          name: "ChallengeResolved",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "challenger",
+              type: "address",
+            },
+          ],
+          name: "Challenged",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "StakeWithdrawn",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "bytes",
+              name: "publicKey",
+              type: "bytes",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "Staked",
+          type: "event",
+        },
+        {
+          inputs: [],
+          name: "CHALLENGE_DURATION",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "CHALLENGE_FEE",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "MINIMUM_STAKE",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+          ],
+          name: "challenge",
+          outputs: [],
+          stateMutability: "payable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+          ],
+          name: "getStake",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "bytes",
+                  name: "publicKey",
+                  type: "bytes",
+                },
+                {
+                  internalType: "uint256",
+                  name: "stakedAmount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "challengeDeadline",
+                  type: "uint256",
+                },
+                {
+                  internalType: "address",
+                  name: "challenger",
+                  type: "address",
+                },
+                {
+                  internalType: "bool",
+                  name: "isStaked",
+                  type: "bool",
+                },
+              ],
+              internalType: "struct StakePGP.UserStake",
+              name: "",
+              type: "tuple",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "proof",
+              type: "bytes",
+            },
+          ],
+          name: "proveIdentity",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "success",
+              type: "bool",
+            },
+          ],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "publicKey",
+              type: "bytes",
+            },
+          ],
+          name: "stake",
+          outputs: [],
+          stateMutability: "payable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          name: "stakes",
+          outputs: [
+            {
+              internalType: "bytes",
+              name: "publicKey",
+              type: "bytes",
+            },
+            {
+              internalType: "uint256",
+              name: "stakedAmount",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "challengeDeadline",
+              type: "uint256",
+            },
+            {
+              internalType: "address",
+              name: "challenger",
+              type: "address",
+            },
+            {
+              internalType: "bool",
+              name: "isStaked",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "withdrawStake",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {},
+    },
+  },
+} as const;
 
 export default deployedContracts satisfies GenericContractsDeclaration;

@@ -1,14 +1,14 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { Contract } from "ethers";
+import { ethers } from "ethers";
 
 /**
- * Deploys a contract named "YourContract" using the deployer account and
- * constructor arguments set to the deployer address
+ * Deploys the StakePGP contract using the deployer account
  *
  * @param hre HardhatRuntimeEnvironment object.
  */
-const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const deployStakePGP: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   /*
     On localhost, the deployer account is the one that comes with Hardhat, which is already funded.
 
@@ -22,23 +22,29 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  await deploy("YourContract", {
+  await deploy("StakePGP", {
     from: deployer,
-    // Contract constructor arguments
-    args: [deployer],
+    // Contract has no constructor arguments
+    args: [],
     log: true,
     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
     // automatically mining the contract deployment transaction. There is no effect on live networks.
     autoMine: true,
   });
 
-  // Get the deployed contract to interact with it after deploying.
-  const yourContract = await hre.ethers.getContract<Contract>("YourContract", deployer);
-  console.log("👋 Initial greeting:", await yourContract.greeting());
+  // Get the deployed contract
+  const stakePGP = await hre.ethers.getContract<Contract>("StakePGP", deployer);
+  console.log("📜 StakePGP deployed to:", stakePGP.address);
+
+  // Log the minimum stake and challenge fee for verification
+  const minStake = await stakePGP.MINIMUM_STAKE();
+  const challengeFee = await stakePGP.CHALLENGE_FEE();
+  console.log("💰 Minimum stake:", ethers.formatEther(minStake), "ETH");
+  console.log("💸 Challenge fee:", ethers.formatEther(challengeFee), "ETH");
 };
 
-export default deployYourContract;
+export default deployStakePGP;
 
 // Tags are useful if you have multiple deploy files and only want to run one of them.
-// e.g. yarn deploy --tags YourContract
-deployYourContract.tags = ["YourContract"];
+// e.g. yarn deploy --tags StakePGP
+deployStakePGP.tags = ["StakePGP"];
