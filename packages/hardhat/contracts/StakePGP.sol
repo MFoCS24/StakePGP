@@ -32,6 +32,7 @@ contract StakePGP {
     uint256 public constant MINIMUM_STAKE = 0.1 ether;
     uint256 public constant CHALLENGE_FEE = 0.05 ether;
     uint256 public constant MINIMUM_STAKE_DURATION = 30 days;
+    uint256 public constant TIMESTAMP_VALIDITY = 60 minutes;
 
     // Events
     event Staked(address indexed user, string publicKey, uint256 amount);
@@ -52,6 +53,7 @@ contract StakePGP {
     error NotChallenger();
     error StakeLocked();
     error InvalidExtension();
+    error InvalidSignature();
 
     /**
      * @dev Internal function to transfer ETH to an address
@@ -66,10 +68,12 @@ contract StakePGP {
     /**
      * @notice Allows a user to stake ETH and register their PGP public key
      * @param publicKey The user's PGP public key
+     * @param signedTimestamp The current date timestamp signed by the user's PGP key
      */
-    function stake(string calldata publicKey) external payable {
+    function stake(string calldata publicKey, string calldata signedTimestamp) external payable {
         if (msg.value < MINIMUM_STAKE) revert InsufficientStake();
         if (stakes[msg.sender].isStaked) revert AlreadyStaked();
+        if (!verifySignedTimestamp(publicKey, signedTimestamp)) revert InvalidSignature();
 
         stakes[msg.sender] = UserStake({
             publicKey: publicKey,
@@ -206,6 +210,23 @@ contract StakePGP {
         if (block.timestamp >= unlockTime) return 0;
         
         return unlockTime - block.timestamp;
+    }
+
+    /**
+     * @dev Internal function to verify a timestamp signed by a PGP key
+     * @param publicKey The PGP public key to verify against
+     * @param signedTimestamp The signed timestamp to verify
+     * @return valid Whether the signature is valid and timestamp is fresh
+     */
+    function verifySignedTimestamp(string memory publicKey, string memory signedTimestamp) internal view returns (bool valid) {        
+        // Verify timestamp is within validity window
+        if (timestamp < block.timestamp - TIMESTAMP_VALIDITY || 
+            timestamp > block.timestamp) {
+            return false;
+        }
+
+        // Verify the signature using PGP
+        return verifyPGPSignature(publicKey, timestamp, signature);
     }
 
     /**
