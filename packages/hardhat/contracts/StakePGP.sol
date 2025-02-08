@@ -22,6 +22,7 @@ contract StakePGP {
         uint256 stakedAmount; // Amount of ETH staked
         uint256 challengeDeadline; // Deadline for responding to challenge
         address challenger;    // Address of the current challenger
+        uint256 challengeFee; // Amount of ETH held for current challenge
         bool isStaked;        // Whether this address has an active stake
     }
 
@@ -60,6 +61,7 @@ contract StakePGP {
             stakedAmount: msg.value,
             challengeDeadline: 0,
             challenger: address(0),
+            challengeFee: 0,
             isStaked: true
         });
 
@@ -71,12 +73,13 @@ contract StakePGP {
      * @param user The address of the user being challenged
      */
     function challenge(address user) external payable {
-        if (msg.value < CHALLENGE_FEE) revert InsufficientChallengeFee();
+        if (msg.value != CHALLENGE_FEE) revert InsufficientChallengeFee();
         if (!stakes[user].isStaked) revert NoActiveStake();
         if (stakes[user].challenger != address(0)) revert AlreadyChallenged();
 
         stakes[user].challenger = msg.sender;
         stakes[user].challengeDeadline = block.timestamp + CHALLENGE_DURATION;
+        stakes[user].challengeFee = CHALLENGE_FEE;
 
         emit Challenged(user, msg.sender);
     }
@@ -98,19 +101,22 @@ contract StakePGP {
         success = verifyPGPProof(userStake.publicKey, proof);
 
         address challenger = userStake.challenger;
+        uint256 challengeFee = userStake.challengeFee;
         
         if (success) {
             // If proof is successful, transfer challenge fee to the proven user
-            _transferFunds(msg.sender, CHALLENGE_FEE);
+            _transferFunds(msg.sender, challengeFee);
         } else {
-            // If proof fails, transfer stake to challenger
-            _transferFunds(challenger, stakes[msg.sender].stakedAmount);
+            // If proof fails, return challenge fee along with the stake to challenger
+            uint256 totalAmount = userStake.stakedAmount + challengeFee;
+            _transferFunds(challenger, totalAmount);
             delete stakes[msg.sender];
         }
 
         // Reset challenge state
         userStake.challenger = address(0);
         userStake.challengeDeadline = 0;
+        userStake.challengeFee = 0;
 
         emit ChallengeResolved(msg.sender, challenger, success);
         return success;
@@ -126,8 +132,8 @@ contract StakePGP {
         if (msg.sender != userStake.challenger) revert NotChallenger();
         if (block.timestamp <= userStake.challengeDeadline) revert ChallengePending();
 
-        uint256 amount = userStake.stakedAmount;
-        _transferFunds(msg.sender, amount);
+        uint256 totalAmount = userStake.stakedAmount + userStake.challengeFee;
+        _transferFunds(msg.sender, totalAmount);
         delete stakes[user];
         emit ChallengeResolved(user, msg.sender, false);
     }
