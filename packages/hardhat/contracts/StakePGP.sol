@@ -17,7 +17,7 @@ import "hardhat/console.sol";
  * 
  * @author MFoCS24
  */
-contract StakePGP {
+contract StakePGP is IdentityVerificationHubImplV1 {
     // State variables
     struct UserStake {
         string publicKey;      // PGP public key
@@ -220,5 +220,25 @@ contract StakePGP {
         // TODO: Implement actual PGP verification logic
         // For now, return true to simulate a successful proof
         return true;
+    }
+
+    /**
+     * @notice Verifies a zero-knowledge proof that reveals a user's name
+     * @param proof The VcAndDiscloseHubProof containing the proof data
+     * @return valid Whether the proof is valid and reveals a name
+     */
+    function verifyNameProof(VcAndDiscloseHubProof calldata proof) external view returns (bool) {
+        // Create array with just the NAME type to check
+        RevealedDataType[] memory types = new RevealedDataType[](1);
+        types[0] = RevealedDataType.NAME;
+
+        try this.verifyVcAndDisclose(proof) returns (VcAndDiscloseVerificationResult memory result) {
+            // Get the readable data from the proof
+            ReadableRevealedData memory data = this.getReadableRevealedData(result.revealedDataPacked, types);
+            // Verify that a name was actually revealed (not empty)
+            return data.name.length > 0;
+        } catch {
+            return false;
+        }
     }
 }
