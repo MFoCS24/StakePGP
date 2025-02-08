@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ManagePGP } from "./components/pgp/ManagePGP";
+import { SearchPGP } from "./components/search/SearchPGP";
+import { ManageStake } from "./components/stake/ManageStake";
+import { PGPIdentity, StakeContract } from "./types/pgp";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
 import { HomeIcon } from "@heroicons/react/24/outline";
-import Link from "next/link";
 import { Address } from "~~/components/scaffold-eth";
-import { ManagePGP } from "./components/pgp/ManagePGP";
-import { ManageStake } from "./components/stake/ManageStake";
-import { SearchPGP } from "./components/search/SearchPGP";
-import { PGPIdentity, StakeContract } from "./types/pgp";
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
@@ -24,10 +24,11 @@ const Home: NextPage = () => {
     const fetchPGPIdentity = async () => {
       try {
         setIsLoadingIdentity(true);
-        // TODO: Implement actual PGP identity fetch
-        // For now, using mock data
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setPgpIdentity(null);
+        // Check localStorage first
+        const storedIdentity = localStorage.getItem("pgp_identity");
+        if (storedIdentity) {
+          setPgpIdentity(JSON.parse(storedIdentity));
+        }
       } catch (error) {
         console.error("Error fetching PGP identity:", error);
         setPgpIdentity(null);
@@ -103,11 +104,7 @@ const Home: NextPage = () => {
       </div>
 
       {activeTab === "pgp" && (
-        <ManagePGP
-          pgpIdentity={pgpIdentity}
-          isLoadingIdentity={isLoadingIdentity}
-          setPgpIdentity={setPgpIdentity}
-        />
+        <ManagePGP pgpIdentity={pgpIdentity} isLoadingIdentity={isLoadingIdentity} setPgpIdentity={setPgpIdentity} />
       )}
       {activeTab === "stake" && (
         <ManageStake

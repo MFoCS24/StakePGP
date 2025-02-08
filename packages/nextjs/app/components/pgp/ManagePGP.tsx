@@ -1,14 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import * as openpgp from "openpgp";
-import {
-  ArrowUpTrayIcon,
-  DocumentDuplicateIcon,
-  ExclamationTriangleIcon,
-  KeyIcon,
-} from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
 import { PGPIdentity } from "../../types/pgp";
+import * as openpgp from "openpgp";
+import { ArrowUpTrayIcon, DocumentDuplicateIcon, ExclamationTriangleIcon, KeyIcon } from "@heroicons/react/24/outline";
 
 interface ManagePGPProps {
   pgpIdentity: PGPIdentity | null;
@@ -26,6 +21,13 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
     email: "",
     passphrase: "",
   });
+
+  useEffect(() => {
+    const storedIdentity = localStorage.getItem("pgp_identity");
+    if (storedIdentity) {
+      setPgpIdentity(JSON.parse(storedIdentity));
+    }
+  }, [setPgpIdentity]);
 
   const handleImportKey = async () => {
     try {
@@ -47,11 +49,11 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
       }
 
       const [, name, email] = nameMatch;
-      const keyId = publicKeyObj.getKeyID().toHex().toUpperCase();
+      const fullKeyId = publicKeyObj.getFingerprint().toUpperCase();
 
       // Create PGP identity object
       const newIdentity: PGPIdentity = {
-        keyId,
+        keyId: fullKeyId,
         name: name.trim(),
         email: email.trim(),
         publicKey: importKey,
@@ -81,11 +83,11 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
 
       // Extract key ID from the public key
       const publicKeyObj = await openpgp.readKey({ armoredKey: publicKey });
-      const keyId = publicKeyObj.getKeyID().toHex().toUpperCase();
+      const fullKeyId = publicKeyObj.getFingerprint().toUpperCase();
 
       // Create PGP identity object
       const newIdentity: PGPIdentity = {
-        keyId,
+        keyId: fullKeyId,
         name: keyGenForm.name,
         email: keyGenForm.email,
         publicKey,
@@ -151,6 +153,13 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
     document.body.removeChild(a);
   };
 
+  const handleLogout = () => {
+    // Clear PGP identity from state
+    setPgpIdentity(null);
+    // Remove from local storage
+    localStorage.removeItem("pgp_identity");
+  };
+
   if (isLoadingIdentity) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -184,7 +193,9 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
               </div>
             )}
             <label className="label">
-              <span className="label-text-alt">The key should start with &quot;-----BEGIN PGP PUBLIC KEY BLOCK-----&quot;</span>
+              <span className="label-text-alt">
+                The key should start with &quot;-----BEGIN PGP PUBLIC KEY BLOCK-----&quot;
+              </span>
             </label>
           </div>
           <div className="card-actions justify-end mt-4">
@@ -245,7 +256,7 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
             <h2 className="card-title">Connected PGP Identity</h2>
           </div>
           <div className="mt-4">
-            <p>
+            <p className="break-all">
               <strong>Key ID:</strong> {pgpIdentity.keyId}
             </p>
             <p>
@@ -276,29 +287,38 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title">Key Actions</h2>
-          <div className="alert alert-warning shadow-lg mb-4">
-            <div>
-              <ExclamationTriangleIcon className="h-6 w-6" />
-              <div>
-                <h3 className="font-bold">Important Security Notice</h3>
-                <p className="text-sm">
-                  Make sure to download and securely store your private key. It cannot be recovered if lost!
-                </p>
+          {pgpIdentity.privateKey && (
+            <>
+              <div className="alert alert-warning shadow-lg mb-4">
+                <div>
+                  <ExclamationTriangleIcon className="h-6 w-6" />
+                  <div>
+                    <h3 className="font-bold">Important Security Notice</h3>
+                    <p className="text-sm">
+                      Make sure to download and securely store your private key. It cannot be recovered if lost!
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+              <div className="flex flex-col gap-4">
+                <button
+                  className={`btn btn-primary ${isUploadingKey ? "loading" : ""}`}
+                  onClick={handleUploadToKeyserver}
+                  disabled={isUploadingKey}
+                >
+                  {isUploadingKey ? "Uploading..." : "Upload to Keyserver"}
+                </button>
+              </div>
+            </>
+          )}
           <div className="flex flex-col gap-4">
-            <button
-              className={`btn btn-primary ${isUploadingKey ? "loading" : ""}`}
-              onClick={handleUploadToKeyserver}
-              disabled={isUploadingKey}
-            >
-              {isUploadingKey ? "Uploading..." : "Upload to Keyserver"}
-            </button>
             <button className="btn btn-error">Revoke Key</button>
+            <button className="btn btn-ghost" onClick={handleLogout}>
+              Log out
+            </button>
           </div>
         </div>
       </div>
     </div>
   );
-}; 
+};
