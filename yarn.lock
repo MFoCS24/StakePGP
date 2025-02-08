@@ -10575,6 +10575,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"openpgp@npm:^6.1.0":
+  version: 6.1.0
+  resolution: "openpgp@npm:6.1.0"
+  checksum: c45ab4d833c81174de1dfc8ef964bd0c2cbf0e1efb5f44e614daedf5a90b9433df2aae0454f4ef09769a82658c71f3a57059ecd1477db2d937e3f4607b2cfdf9
+  languageName: node
+  linkType: hard
+
 "optionator@npm:^0.8.1":
   version: 0.8.3
   resolution: "optionator@npm:0.8.3"
@@ -11995,6 +12002,7 @@ __metadata:
   dependencies:
     husky: ^9.1.6
     lint-staged: ^15.2.10
+    openpgp: ^6.1.0
   languageName: unknown
   linkType: soft
 

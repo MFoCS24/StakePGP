@@ -6,12 +6,14 @@ import type { NextPage } from "next";
 import { useAccount } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
 import { KeyIcon, ArrowUpTrayIcon, DocumentDuplicateIcon, ExclamationTriangleIcon, ShieldCheckIcon, HomeIcon } from "@heroicons/react/24/outline";
+import * as openpgp from 'openpgp';
 
 interface PGPIdentity {
   keyId: string;
   name: string;
   email: string;
   publicKey: string;
+  privateKey?: string;
 }
 
 interface StakeContract {
@@ -30,6 +32,14 @@ const Home: NextPage = () => {
   const [isLoadingContract, setIsLoadingContract] = useState(true);
   const [importKey, setImportKey] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+  const [isUploadingKey, setIsUploadingKey] = useState(false);
+  const [keyGenForm, setKeyGenForm] = useState({
+    name: "",
+    email: "",
+    passphrase: ""
+  });
+  const [importError, setImportError] = useState<string | null>(null);
 
   // Fetch PGP identity
   useEffect(() => {
@@ -77,20 +87,130 @@ const Home: NextPage = () => {
 
   const handleImportKey = async () => {
     try {
-      // TODO: Implement actual key import logic
-      console.log("Importing key:", importKey);
+      setImportError(null);
+      
+      // Try to read and validate the public key
+      const publicKeyObj = await openpgp.readKey({ armoredKey: importKey });
+      
+      // Extract user information from the key
+      const userID = publicKeyObj.users[0]?.userID;
+      if (!userID) {
+        throw new Error("No user information found in the key");
+      }
+
+      // Parse user ID (format: "Name <email@example.com>")
+      const nameMatch = userID.userID.match(/(.*?)\s*<(.+?)>/);
+      if (!nameMatch) {
+        throw new Error("Invalid user ID format in key");
+      }
+
+      const [, name, email] = nameMatch;
+      const keyId = publicKeyObj.getKeyID().toHex().toUpperCase();
+
+      // Create PGP identity object
+      const newIdentity: PGPIdentity = {
+        keyId,
+        name: name.trim(),
+        email: email.trim(),
+        publicKey: importKey
+      };
+
+      setPgpIdentity(newIdentity);
+      
+      // Store in local storage
+      localStorage.setItem('pgp_identity', JSON.stringify(newIdentity));
+      
     } catch (error) {
       console.error("Error importing key:", error);
+      setImportError(error instanceof Error ? error.message : "Invalid PGP public key format");
     }
   };
 
   const handleGenerateKey = async () => {
     try {
-      // TODO: Implement key generation logic
-      console.log("Generating new key");
+      setIsGeneratingKey(true);
+      
+      // Generate key pair
+      const { privateKey, publicKey } = await openpgp.generateKey({
+        type: 'rsa',
+        rsaBits: 4096,
+        userIDs: [{ name: keyGenForm.name, email: keyGenForm.email }],
+        passphrase: keyGenForm.passphrase
+      });
+
+      // Extract key ID from the public key
+      const publicKeyObj = await openpgp.readKey({ armoredKey: publicKey });
+      const keyId = publicKeyObj.getKeyID().toHex().toUpperCase();
+
+      // Create PGP identity object
+      const newIdentity: PGPIdentity = {
+        keyId,
+        name: keyGenForm.name,
+        email: keyGenForm.email,
+        publicKey,
+        privateKey
+      };
+
+      setPgpIdentity(newIdentity);
+      
+      // Store in local storage (you might want to use a more secure storage in production)
+      localStorage.setItem('pgp_identity', JSON.stringify(newIdentity));
+      
     } catch (error) {
       console.error("Error generating key:", error);
+      // You might want to show a toast or alert here
+    } finally {
+      setIsGeneratingKey(false);
     }
+  };
+
+  const handleUploadToKeyserver = async () => {
+    if (!pgpIdentity) return;
+
+    try {
+      setIsUploadingKey(true);
+      
+      // Upload to Ubuntu keyserver
+      const response = await fetch('https://keyserver.ubuntu.com/pks/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `keytext=${encodeURIComponent(pgpIdentity.publicKey)}`
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload key to keyserver');
+      }
+
+      // Show success message
+      alert('Key successfully uploaded to keyserver!');
+      
+    } catch (error) {
+      console.error("Error uploading key:", error);
+      alert('Failed to upload key to keyserver. Please try again.');
+    } finally {
+      setIsUploadingKey(false);
+    }
+  };
+
+  const handleDownloadPrivateKey = () => {
+    if (!pgpIdentity?.privateKey) return;
+
+    // Create a blob with the private key
+    const blob = new Blob([pgpIdentity.privateKey], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    
+    // Create a temporary link element and trigger the download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pgp-private-key-${pgpIdentity.keyId.toLowerCase()}.asc`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
   };
 
   const renderPGPManagement = () => {
@@ -112,11 +232,23 @@ const Home: NextPage = () => {
             </div>
             <div className="form-control mt-4">
               <textarea
-                className="textarea textarea-bordered h-32"
+                className={`textarea textarea-bordered h-32 ${importError ? 'textarea-error' : ''}`}
                 placeholder="Paste your PGP public key here..."
                 value={importKey}
-                onChange={(e) => setImportKey(e.target.value)}
+                onChange={(e) => {
+                  setImportKey(e.target.value);
+                  setImportError(null);
+                }}
               ></textarea>
+              {importError && (
+                <div className="alert alert-error mt-2">
+                  <ExclamationTriangleIcon className="h-5 w-5" />
+                  <span className="text-sm">{importError}</span>
+                </div>
+              )}
+              <label className="label">
+                <span className="label-text-alt">The key should start with "-----BEGIN PGP PUBLIC KEY BLOCK-----"</span>
+              </label>
             </div>
             <div className="card-actions justify-end mt-4">
               <button 
@@ -136,13 +268,36 @@ const Home: NextPage = () => {
               <KeyIcon className="h-6 w-6" />
               <h2 className="card-title">Generate New Key</h2>
             </div>
-            <p className="mt-4">Generate a new PGP key pair associated with your Ethereum address.</p>
+            <div className="form-control gap-4 mt-4">
+              <input
+                type="text"
+                placeholder="Full Name"
+                className="input input-bordered"
+                value={keyGenForm.name}
+                onChange={(e) => setKeyGenForm(prev => ({ ...prev, name: e.target.value }))}
+              />
+              <input
+                type="email"
+                placeholder="Email Address"
+                className="input input-bordered"
+                value={keyGenForm.email}
+                onChange={(e) => setKeyGenForm(prev => ({ ...prev, email: e.target.value }))}
+              />
+              <input
+                type="password"
+                placeholder="Key Passphrase"
+                className="input input-bordered"
+                value={keyGenForm.passphrase}
+                onChange={(e) => setKeyGenForm(prev => ({ ...prev, passphrase: e.target.value }))}
+              />
+            </div>
             <div className="card-actions justify-end mt-4">
               <button 
-                className="btn btn-secondary" 
+                className={`btn btn-secondary ${isGeneratingKey ? 'loading' : ''}`}
                 onClick={handleGenerateKey}
+                disabled={isGeneratingKey || !keyGenForm.name || !keyGenForm.email || !keyGenForm.passphrase}
               >
-                Generate Key
+                {isGeneratingKey ? 'Generating...' : 'Generate Key'}
               </button>
             </div>
           </div>
@@ -161,7 +316,7 @@ const Home: NextPage = () => {
               <p><strong>Name:</strong> {pgpIdentity.name}</p>
               <p><strong>Email:</strong> {pgpIdentity.email}</p>
             </div>
-            <div className="card-actions justify-end mt-4">
+            <div className="card-actions justify-end mt-4 flex-wrap gap-2">
               <button 
                 className="btn btn-sm btn-ghost gap-2"
                 onClick={() => navigator.clipboard.writeText(pgpIdentity.publicKey)}
@@ -169,6 +324,15 @@ const Home: NextPage = () => {
                 <DocumentDuplicateIcon className="h-4 w-4" />
                 Copy Public Key
               </button>
+              {pgpIdentity.privateKey && (
+                <button 
+                  className="btn btn-sm btn-warning gap-2"
+                  onClick={handleDownloadPrivateKey}
+                >
+                  <ArrowUpTrayIcon className="h-4 w-4" />
+                  Download Private Key
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -176,9 +340,22 @@ const Home: NextPage = () => {
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title">Key Actions</h2>
-            <div className="flex flex-col gap-4 mt-4">
-              <button className="btn btn-primary">
-                Upload to Keyserver
+            <div className="alert alert-warning shadow-lg mb-4">
+              <div>
+                <ExclamationTriangleIcon className="h-6 w-6" />
+                <div>
+                  <h3 className="font-bold">Important Security Notice</h3>
+                  <p className="text-sm">Make sure to download and securely store your private key. It cannot be recovered if lost!</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              <button 
+                className={`btn btn-primary ${isUploadingKey ? 'loading' : ''}`}
+                onClick={handleUploadToKeyserver}
+                disabled={isUploadingKey}
+              >
+                {isUploadingKey ? 'Uploading...' : 'Upload to Keyserver'}
               </button>
               <button className="btn btn-error">
                 Revoke Key
