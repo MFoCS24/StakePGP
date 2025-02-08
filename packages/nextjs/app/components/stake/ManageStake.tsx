@@ -3,19 +3,18 @@
 import { ExclamationTriangleIcon, KeyIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { parseEther } from "viem";
+import { v4 as uuidv4 } from 'uuid';
 import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 import { PGPIdentity, StakeContract } from "../../types/pgp";
 import { IntegerInput } from "~~/components/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
 import { useWalletClient, usePublicClient } from "wagmi";
+import { OpenPassportVerifier } from '@openpassport/core';
+import { OpenPassportQRcode } from '@openpassport/qrcode';
 
-interface ManageStakeProps {
-  pgpIdentity: PGPIdentity | null;
-  isLoadingIdentity: boolean;
-  stakeContract: StakeContract | null;
-  isLoadingContract: boolean;
-  setActiveTab: (tab: "pgp" | "stake" | "search") => void;
-}
+const scope = "stakePGP";
+const openPassportVerifier: OpenPassportVerifier = new OpenPassportVerifier('prove_onchain', scope).setMinimumAge(18).allowMockPassports();;
+
 
 export const ManageStake = ({
   pgpIdentity,
@@ -169,6 +168,24 @@ export const ManageStake = ({
           </div>
         </div>
       )}
+
+      <div className="card bg-base-100 shadow-xl mt-4">
+        <div className="card-body">
+          <h2 className="card-title">Verify Identity</h2>
+          <div className="flex flex-col gap-4 mt-4">
+            <button className="btn btn-secondary">Verify Now</button>
+              <OpenPassportQRcode
+                appName="StakePGP"
+                userId={uuidv4()}
+                userIdType={'uuid'}
+                openPassportVerifier={openPassportVerifier}
+                onSuccess={(attestation) => {
+                // send the code to the backend server
+                }}
+              />
+          </div>
+        </div>
+      </div>
     </>
   );
 }; 

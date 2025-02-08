@@ -57,6 +57,8 @@
     "node": ">=18.18.0"
   },
   "dependencies": {
+    "@openpassport/qrcode": "^0.0.16",
+    "axios": "^1.7.9",
     "openpgp": "^6.1.0"
   }
 }
