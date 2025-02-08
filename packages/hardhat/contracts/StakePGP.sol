@@ -106,8 +106,6 @@ contract StakePGP {
         if (userStake.challenger == address(0)) revert NotChallenged();
         if (block.timestamp > userStake.challengeDeadline) revert ChallengeExpired();
 
-        // TODO: Implement PGP verification logic here
-        // This will return true if the proof is valid, false otherwise
         success = verifyPGPProof(userStake.publicKey, proof);
 
         address challenger = userStake.challenger;
@@ -149,18 +147,6 @@ contract StakePGP {
     }
 
     /**
-     * @dev Internal function to verify PGP proof
-     * @param publicKey The user's PGP public key
-     * @param proof The proof data
-     * @return valid Whether the proof is valid
-     */
-    function verifyPGPProof(string memory publicKey, bytes memory proof) internal pure returns (bool valid) {
-        // TODO: Implement actual PGP verification logic
-        // For now, return true to indicate unimplemented
-        return true;
-    }
-
-    /**
      * @notice Allows a user to withdraw their stake if they're not being challenged
      */
     function withdrawStake() external {
@@ -173,5 +159,17 @@ contract StakePGP {
 
         _transferFunds(msg.sender, amount);
         emit StakeWithdrawn(msg.sender, amount);
+    }
+
+    /**
+     * @dev Internal function to verify PGP proof
+     * @param publicKey The user's PGP public key
+     * @param proof The proof data
+     * @return valid Whether the proof is valid
+     */
+    function verifyPGPProof(string memory publicKey, bytes memory proof) internal pure returns (bool valid) {
+        // TODO: Implement actual PGP verification logic
+        // For now, return true to simulate a successful proof
+        return true;
     }
 }
