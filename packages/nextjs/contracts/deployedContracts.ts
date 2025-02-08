@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     StakePGP: {
-      address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
       abi: [
         {
           inputs: [],
@@ -41,6 +41,11 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "InvalidExtension",
+          type: "error",
+        },
+        {
+          inputs: [],
           name: "NoActiveStake",
           type: "error",
         },
@@ -52,6 +57,11 @@ const deployedContracts = {
         {
           inputs: [],
           name: "NotChallenger",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "StakeLocked",
           type: "error",
         },
         {
@@ -96,6 +106,25 @@ const deployedContracts = {
             },
           ],
           name: "Challenged",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "newUnlockTime",
+              type: "uint256",
+            },
+          ],
+          name: "LockExtended",
           type: "event",
         },
         {
@@ -182,6 +211,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "MINIMUM_STAKE_DURATION",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "address",
@@ -205,6 +247,38 @@ const deployedContracts = {
           name: "claimStake",
           outputs: [],
           stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "additionalTime",
+              type: "uint256",
+            },
+          ],
+          name: "extendLock",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+          ],
+          name: "getRemainingLockTime",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "remainingTime",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
           type: "function",
         },
         {
@@ -265,9 +339,19 @@ const deployedContracts = {
               type: "uint256",
             },
             {
+              internalType: "uint256",
+              name: "stakeTimestamp",
+              type: "uint256",
+            },
+            {
               internalType: "address",
               name: "challenger",
               type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "challengeFee",
+              type: "uint256",
             },
             {
               internalType: "bool",

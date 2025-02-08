@@ -1,13 +1,17 @@
 "use client";
 
 import React, { useCallback, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { hardhat } from "viem/chains";
-import { Bars3Icon, BugAntIcon } from "@heroicons/react/24/outline";
-import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
-import { useOutsideClick, useTargetNetwork } from "~~/hooks/scaffold-eth";
+import { Bars3Icon, KeyIcon, CurrencyDollarIcon, MagnifyingGlassIcon, HomeIcon } from "@heroicons/react/24/outline";
+import dynamic from "next/dynamic";
+import { useOutsideClick } from "~~/hooks/scaffold-eth";
+
+// Dynamically import RainbowKitCustomConnectButton with no SSR
+const RainbowKitCustomConnectButton = dynamic(
+  () => import("~~/components/scaffold-eth").then(mod => mod.RainbowKitCustomConnectButton),
+  { ssr: false }
+);
 
 type HeaderMenuLink = {
   label: string;
@@ -17,13 +21,19 @@ type HeaderMenuLink = {
 
 export const menuLinks: HeaderMenuLink[] = [
   {
-    label: "Home",
-    href: "/",
+    label: "Manage PGP",
+    href: "/manage-pgp",
+    icon: <KeyIcon className="h-4 w-4" />,
   },
   {
-    label: "Debug Contracts",
-    href: "/debug",
-    icon: <BugAntIcon className="h-4 w-4" />,
+    label: "Manage Stake",
+    href: "/manage-stake",
+    icon: <CurrencyDollarIcon className="h-4 w-4" />,
+  },
+  {
+    label: "Search",
+    href: "/search",
+    icon: <MagnifyingGlassIcon className="h-4 w-4" />,
   },
 ];
 
@@ -57,11 +67,11 @@ export const HeaderMenuLinks = () => {
  * Site header
  */
 export const Header = () => {
-  const { targetNetwork } = useTargetNetwork();
-  const isLocalNetwork = targetNetwork.id === hardhat.id;
-
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const burgerMenuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const isLegacyPage = pathname?.startsWith("/debug");
+
   useOutsideClick(
     burgerMenuRef,
     useCallback(() => setIsDrawerOpen(false), []),
@@ -88,27 +98,37 @@ export const Header = () => {
                 setIsDrawerOpen(false);
               }}
             >
-              <HeaderMenuLinks />
+              {!isLegacyPage && <HeaderMenuLinks />}
+              <li>
+                <Link
+                  href={isLegacyPage ? "/" : "/debug"}
+                  className="hover:bg-secondary hover:shadow-md focus:!bg-secondary active:!text-neutral py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col"
+                >
+                  <HomeIcon className="h-4 w-4" />
+                  <span>{isLegacyPage ? "Main Version" : "Legacy Version"}</span>
+                </Link>
+              </li>
             </ul>
           )}
         </div>
-        <Link href="/" passHref className="hidden lg:flex items-center gap-2 ml-4 mr-6 shrink-0">
-          <div className="flex relative w-10 h-10">
-            <Image alt="SE2 logo" className="cursor-pointer" fill src="/logo.svg" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-bold leading-tight">Scaffold-ETH</span>
-            <span className="text-xs">Ethereum dev stack</span>
-          </div>
-        </Link>
         <ul className="hidden lg:flex lg:flex-nowrap menu menu-horizontal px-1 gap-2">
-          <HeaderMenuLinks />
+          {!isLegacyPage && <HeaderMenuLinks />}
+          <li>
+            <Link
+              href={isLegacyPage ? "/" : "/debug"}
+              className="hover:bg-secondary hover:shadow-md focus:!bg-secondary active:!text-neutral py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col"
+            >
+              <HomeIcon className="h-4 w-4" />
+              <span>{isLegacyPage ? "Main Version" : "Legacy Version"}</span>
+            </Link>
+          </li>
         </ul>
       </div>
-      <div className="navbar-end flex-grow mr-4">
-        <RainbowKitCustomConnectButton />
-        {isLocalNetwork && <FaucetButton />}
-      </div>
+      {isLegacyPage && (
+        <div className="navbar-end flex-grow mr-4">
+          <RainbowKitCustomConnectButton />
+        </div>
+      )}
     </div>
   );
 };
