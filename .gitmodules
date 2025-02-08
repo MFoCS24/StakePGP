@@ -1,0 +1,3 @@
+[submodule "packages/hardhat/contracts/openpassport"]
+	path = packages/hardhat/contracts/openpassport
+	url = git@github.com:zk-passport/openpassport.git
