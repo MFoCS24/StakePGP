@@ -49,6 +49,16 @@ contract StakePGP {
     error NotChallenger();
 
     /**
+     * @dev Internal function to transfer ETH to an address
+     * @param recipient The address receiving the ETH
+     * @param amount The amount of ETH to transfer
+     */
+    function _transferFunds(address recipient, uint256 amount) internal {
+        (bool sent, ) = recipient.call{value: amount}("");
+        require(sent, "Failed to transfer funds");
+    }
+
+    /**
      * @notice Allows a user to stake ETH and register their PGP public key
      * @param publicKey The user's PGP public key
      */
@@ -136,16 +146,6 @@ contract StakePGP {
         _transferFunds(msg.sender, totalAmount);
         delete stakes[user];
         emit ChallengeResolved(user, msg.sender, false);
-    }
-
-    /**
-     * @dev Internal function to transfer ETH to an address
-     * @param recipient The address receiving the ETH
-     * @param amount The amount of ETH to transfer
-     */
-    function _transferFunds(address recipient, uint256 amount) internal {
-        (bool sent, ) = recipient.call{value: amount}("");
-        require(sent, "Failed to transfer funds");
     }
 
     /**
