@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     StakePGP: {
-      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
       abi: [
         {
           inputs: [],
@@ -128,9 +128,9 @@ const deployedContracts = {
             },
             {
               indexed: false,
-              internalType: "bytes",
+              internalType: "string",
               name: "publicKey",
-              type: "bytes",
+              type: "string",
             },
             {
               indexed: false,
@@ -197,52 +197,6 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "address",
-              name: "user",
-              type: "address",
-            },
-          ],
-          name: "getStake",
-          outputs: [
-            {
-              components: [
-                {
-                  internalType: "bytes",
-                  name: "publicKey",
-                  type: "bytes",
-                },
-                {
-                  internalType: "uint256",
-                  name: "stakedAmount",
-                  type: "uint256",
-                },
-                {
-                  internalType: "uint256",
-                  name: "challengeDeadline",
-                  type: "uint256",
-                },
-                {
-                  internalType: "address",
-                  name: "challenger",
-                  type: "address",
-                },
-                {
-                  internalType: "bool",
-                  name: "isStaked",
-                  type: "bool",
-                },
-              ],
-              internalType: "struct StakePGP.UserStake",
-              name: "",
-              type: "tuple",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
               internalType: "bytes",
               name: "proof",
               type: "bytes",
@@ -262,9 +216,9 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "bytes",
+              internalType: "string",
               name: "publicKey",
-              type: "bytes",
+              type: "string",
             },
           ],
           name: "stake",
@@ -283,9 +237,9 @@ const deployedContracts = {
           name: "stakes",
           outputs: [
             {
-              internalType: "bytes",
+              internalType: "string",
               name: "publicKey",
-              type: "bytes",
+              type: "string",
             },
             {
               internalType: "uint256",

@@ -18,7 +18,7 @@ import "hardhat/console.sol";
 contract StakePGP {
     // State variables
     struct UserStake {
-        bytes publicKey;      // PGP public key
+        string publicKey;      // PGP public key
         uint256 stakedAmount; // Amount of ETH staked
         uint256 challengeDeadline; // Deadline for responding to challenge
         address challenger;    // Address of the current challenger
@@ -31,7 +31,7 @@ contract StakePGP {
     uint256 public constant CHALLENGE_FEE = 0.05 ether;
 
     // Events
-    event Staked(address indexed user, bytes publicKey, uint256 amount);
+    event Staked(address indexed user, string publicKey, uint256 amount);
     event Challenged(address indexed user, address indexed challenger);
     event ChallengeResolved(address indexed user, address indexed challenger, bool success);
     event StakeWithdrawn(address indexed user, uint256 amount);
@@ -51,7 +51,7 @@ contract StakePGP {
      * @notice Allows a user to stake ETH and register their PGP public key
      * @param publicKey The user's PGP public key
      */
-    function stake(bytes calldata publicKey) external payable {
+    function stake(string calldata publicKey) external payable {
         if (msg.value < MINIMUM_STAKE) revert InsufficientStake();
         if (stakes[msg.sender].isStaked) revert AlreadyStaked();
 
@@ -101,15 +101,11 @@ contract StakePGP {
         
         if (success) {
             // If proof is successful, transfer challenge fee to the proven user
-            (bool sent, ) = msg.sender.call{value: CHALLENGE_FEE}("");
-            require(sent, "Failed to send challenge fee");
+            _transferFunds(msg.sender, CHALLENGE_FEE);
         } else {
             // If proof fails, transfer stake to challenger
-            uint256 amount = userStake.stakedAmount;
+            _transferFunds(challenger, stakes[msg.sender].stakedAmount);
             delete stakes[msg.sender];
-            
-            (bool sent, ) = challenger.call{value: amount}("");
-            require(sent, "Failed to send stake");
         }
 
         // Reset challenge state
@@ -121,12 +117,38 @@ contract StakePGP {
     }
 
     /**
+     * @notice Allows a challenger to claim the stake if the challenge deadline has passed
+     * @param user The address of the challenged user
+     */
+    function claimStake(address user) external {
+        UserStake storage userStake = stakes[user];
+        if (!userStake.isStaked) revert NoActiveStake();
+        if (msg.sender != userStake.challenger) revert NotChallenger();
+        if (block.timestamp <= userStake.challengeDeadline) revert ChallengePending();
+
+        uint256 amount = userStake.stakedAmount;
+        _transferFunds(msg.sender, amount);
+        delete stakes[user];
+        emit ChallengeResolved(user, msg.sender, false);
+    }
+
+    /**
+     * @dev Internal function to transfer ETH to an address
+     * @param recipient The address receiving the ETH
+     * @param amount The amount of ETH to transfer
+     */
+    function _transferFunds(address recipient, uint256 amount) internal {
+        (bool sent, ) = recipient.call{value: amount}("");
+        require(sent, "Failed to transfer funds");
+    }
+
+    /**
      * @dev Internal function to verify PGP proof
      * @param publicKey The user's PGP public key
      * @param proof The proof data
      * @return valid Whether the proof is valid
      */
-    function verifyPGPProof(bytes memory publicKey, bytes memory proof) internal pure returns (bool valid) {
+    function verifyPGPProof(string memory publicKey, bytes memory proof) internal pure returns (bool valid) {
         // TODO: Implement actual PGP verification logic
         // For now, return true to indicate unimplemented
         return true;
@@ -143,18 +165,7 @@ contract StakePGP {
         uint256 amount = userStake.stakedAmount;
         delete stakes[msg.sender];
 
-        (bool sent, ) = msg.sender.call{value: amount}("");
-        require(sent, "Failed to send stake");
-
+        _transferFunds(msg.sender, amount);
         emit StakeWithdrawn(msg.sender, amount);
-    }
-
-    /**
-     * @notice Returns the stake information for a given user
-     * @param user The address of the user
-     * @return The UserStake struct containing the user's stake information
-     */
-    function getStake(address user) external view returns (UserStake memory) {
-        return stakes[user];
     }
 }
