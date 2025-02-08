@@ -7,62 +7,80 @@ import { SearchPGP } from "./components/search/SearchPGP";
 import { ManageStake } from "./components/stake/ManageStake";
 import { PGPIdentity, StakeContract } from "./types/pgp";
 import type { NextPage } from "next";
+import { formatEther } from "viem";
 import { useAccount } from "wagmi";
 import { HomeIcon } from "@heroicons/react/24/outline";
 import { Address } from "~~/components/scaffold-eth";
+import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
   const [activeTab, setActiveTab] = useState<"pgp" | "stake" | "search">("pgp");
   const [pgpIdentity, setPgpIdentity] = useState<PGPIdentity | null>(null);
-  const [isLoadingIdentity, setIsLoadingIdentity] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [stakeContract, setStakeContract] = useState<StakeContract | null>(null);
-  const [isLoadingContract, setIsLoadingContract] = useState(true);
+
+  const { data: stakePGPContract, isLoading: isContractLoading } = useScaffoldContract({
+    contractName: "StakePGP",
+  });
 
   // Fetch PGP identity
   useEffect(() => {
     const fetchPGPIdentity = async () => {
+      if (!connectedAddress) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        setIsLoadingIdentity(true);
-        // Check localStorage first
+        setIsLoading(true);
         const storedIdentity = localStorage.getItem("pgp_identity");
-        if (storedIdentity) {
-          setPgpIdentity(JSON.parse(storedIdentity));
-        }
+        const identity = storedIdentity ? JSON.parse(storedIdentity) : null;
+        setPgpIdentity(identity);
       } catch (error) {
         console.error("Error fetching PGP identity:", error);
         setPgpIdentity(null);
       } finally {
-        setIsLoadingIdentity(false);
+        setIsLoading(false);
       }
     };
 
-    if (connectedAddress) {
-      fetchPGPIdentity();
-    }
+    fetchPGPIdentity();
   }, [connectedAddress]);
 
-  // Fetch stake contract if PGP identity exists
+  // Fetch stake data
   useEffect(() => {
-    const fetchStakeContract = async () => {
-      if (!pgpIdentity) return;
+    const fetchStakeData = async () => {
+      if (!stakePGPContract || !connectedAddress || !pgpIdentity) {
+        setStakeContract(null);
+        return;
+      }
 
       try {
-        setIsLoadingContract(true);
-        // TODO: Implement actual contract fetch
-        // For now, using mock data
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setStakeContract(null);
+        const data = await stakePGPContract.read.stakes([connectedAddress]);
+        // data is returned as a tuple: [publicKey, stakedAmount, challengeDeadline, stakeTimestamp, challenger, challengeFee, isStaked]
+        const [_, stakedAmount, challengeDeadline, stakeTimestamp, challenger, , isStaked] = data;
+
+        if (isStaked) {
+          setStakeContract({
+            amount: formatEther(stakedAmount),
+            startDate: new Date(Number(stakeTimestamp) * 1000),
+            isBeingChallenged: challenger !== "0x0000000000000000000000000000000000000000",
+            lastChallengeDate: challengeDeadline > 0n 
+              ? new Date(Number(challengeDeadline) * 1000)
+              : undefined,
+          });
+        } else {
+          setStakeContract(null);
+        }
       } catch (error) {
-        console.error("Error fetching stake contract:", error);
+        console.error("Error fetching stake data:", error);
         setStakeContract(null);
-      } finally {
-        setIsLoadingContract(false);
       }
     };
 
-    fetchStakeContract();
-  }, [pgpIdentity]);
+    fetchStakeData();
+  }, [stakePGPContract, connectedAddress, pgpIdentity]);
 
   return (
     <div className="flex flex-col gap-6 py-8 px-4 lg:px-8">
@@ -104,14 +122,18 @@ const Home: NextPage = () => {
       </div>
 
       {activeTab === "pgp" && (
-        <ManagePGP pgpIdentity={pgpIdentity} isLoadingIdentity={isLoadingIdentity} setPgpIdentity={setPgpIdentity} />
+        <ManagePGP 
+          pgpIdentity={pgpIdentity} 
+          isLoadingIdentity={isLoading} 
+          setPgpIdentity={setPgpIdentity} 
+        />
       )}
       {activeTab === "stake" && (
         <ManageStake
           pgpIdentity={pgpIdentity}
-          isLoadingIdentity={isLoadingIdentity}
+          isLoadingIdentity={isLoading || isContractLoading}
           stakeContract={stakeContract}
-          isLoadingContract={isLoadingContract}
+          isLoadingContract={isContractLoading}
           setActiveTab={setActiveTab}
         />
       )}

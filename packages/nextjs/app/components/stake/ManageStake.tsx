@@ -1,7 +1,13 @@
 "use client";
 
 import { ExclamationTriangleIcon, KeyIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { parseEther } from "viem";
+import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 import { PGPIdentity, StakeContract } from "../../types/pgp";
+import { IntegerInput } from "~~/components/scaffold-eth";
+import { notification } from "~~/utils/scaffold-eth";
+import { useWalletClient, usePublicClient } from "wagmi";
 
 interface ManageStakeProps {
   pgpIdentity: PGPIdentity | null;
@@ -18,7 +24,41 @@ export const ManageStake = ({
   isLoadingContract,
   setActiveTab,
 }: ManageStakeProps) => {
-  if (isLoadingIdentity) {
+  const [stakeAmount, setStakeAmount] = useState<string>("100000000000000000"); // Default 0.1 ETH
+  const [isStaking, setIsStaking] = useState(false);
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
+
+  const { data: stakePGPContract } = useScaffoldContract({
+    contractName: "StakePGP",
+    walletClient,
+  });
+
+  const handleStake = async () => {
+    if (!stakePGPContract || !pgpIdentity?.publicKey || !publicClient) {
+      notification.error("Contract, PGP key, or network not available");
+      return;
+    }
+
+    try {
+      setIsStaking(true);
+      const hash = await stakePGPContract.write.stake(
+        [pgpIdentity.publicKey],
+        { value: BigInt(stakeAmount) }
+      );
+      notification.success("Transaction sent!");
+      
+      await publicClient.waitForTransactionReceipt({ hash });
+      notification.success("Successfully staked!");
+    } catch (error: any) {
+      console.error("Error staking:", error);
+      notification.error(error.message || "Error while staking");
+    } finally {
+      setIsStaking(false);
+    }
+  };
+
+  if (isLoadingIdentity || isLoadingContract) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <span className="loading loading-spinner loading-lg"></span>
@@ -57,22 +97,44 @@ export const ManageStake = ({
         </div>
       </div>
 
-      {isLoadingContract ? (
-        <div className="flex justify-center items-center h-40">
-          <span className="loading loading-spinner loading-lg"></span>
-        </div>
-      ) : !stakeContract ? (
+      {!stakeContract ? (
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title">Create Stake Contract</h2>
             <p>No stake contract found for your PGP identity. Create one to start participating.</p>
-            <div className="card-actions justify-end mt-4">
-              <button className="btn btn-primary">Sign Staking Contract</button>
+            <div className="flex flex-col gap-4 mt-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">Stake Amount (minimum 0.1 ETH)</label>
+                <IntegerInput
+                  value={stakeAmount}
+                  onChange={value => setStakeAmount(value)}
+                  placeholder="Amount in Wei"
+                />
+                <span className="text-xs text-gray-500">
+                  Current amount: {stakeAmount ? parseFloat(stakeAmount) / 1e18 : 0} ETH
+                </span>
+              </div>
+              <div className="card-actions justify-end">
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleStake}
+                  disabled={isStaking || !stakeAmount || BigInt(stakeAmount) < parseEther("0.1")}
+                >
+                  {isStaking ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Staking...
+                    </>
+                  ) : (
+                    "Sign Staking Contract"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div>
           <div className="card bg-base-100 shadow-xl">
             <div className="card-body">
               <div className="flex items-center gap-2">
@@ -97,9 +159,8 @@ export const ManageStake = ({
             </div>
           </div>
 
-          <div className="card bg-base-100 shadow-xl">
+          <div className="card bg-base-100 shadow-xl mt-4">
             <div className="card-body">
-              <h2 className="card-title">Contract Actions</h2>
               <div className="flex flex-col gap-4 mt-4">
                 <button className="btn btn-primary">Increase Stake</button>
                 <button className="btn btn-error">Withdraw Stake</button>

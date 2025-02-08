@@ -3,7 +3,6 @@ export interface PGPIdentity {
   name: string;
   email: string;
   publicKey: string;
-  privateKey?: string;
 }
 
 export interface StakeContract {
