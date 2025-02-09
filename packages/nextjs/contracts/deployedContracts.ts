@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     StakePGP: {
-      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
       abi: [
         {
           inputs: [
@@ -63,7 +63,7 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "FailedInnerCall",
+          name: "FailedCall",
           type: "error",
         },
         {
@@ -827,9 +827,9 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "bytes",
+              internalType: "string",
               name: "proof",
-              type: "bytes",
+              type: "string",
             },
           ],
           name: "proveIdentity",
@@ -1158,81 +1158,6 @@ const deployedContracts = {
               internalType: "address",
               name: "",
               type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              components: [
-                {
-                  internalType: "bool",
-                  name: "olderThanEnabled",
-                  type: "bool",
-                },
-                {
-                  internalType: "uint256",
-                  name: "olderThan",
-                  type: "uint256",
-                },
-                {
-                  internalType: "bool",
-                  name: "forbiddenCountriesEnabled",
-                  type: "bool",
-                },
-                {
-                  internalType: "uint256",
-                  name: "forbiddenCountriesListPacked",
-                  type: "uint256",
-                },
-                {
-                  internalType: "bool",
-                  name: "ofacEnabled",
-                  type: "bool",
-                },
-                {
-                  components: [
-                    {
-                      internalType: "uint256[2]",
-                      name: "a",
-                      type: "uint256[2]",
-                    },
-                    {
-                      internalType: "uint256[2][2]",
-                      name: "b",
-                      type: "uint256[2][2]",
-                    },
-                    {
-                      internalType: "uint256[2]",
-                      name: "c",
-                      type: "uint256[2]",
-                    },
-                    {
-                      internalType: "uint256[16]",
-                      name: "pubSignals",
-                      type: "uint256[16]",
-                    },
-                  ],
-                  internalType:
-                    "struct IVcAndDiscloseCircuitVerifier.VcAndDiscloseProof",
-                  name: "vcAndDiscloseProof",
-                  type: "tuple",
-                },
-              ],
-              internalType:
-                "struct IIdentityVerificationHubV1.VcAndDiscloseHubProof",
-              name: "proof",
-              type: "tuple",
-            },
-          ],
-          name: "verifyNameProof",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
             },
           ],
           stateMutability: "view",

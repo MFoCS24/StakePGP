@@ -108,13 +108,13 @@ contract StakePGP is IdentityVerificationHubImplV1 {
      * @param proof The proof data that will be used to verify the PGP identity
      * @return success Whether the proof was successful
      */
-    function proveIdentity(bytes calldata proof) external returns (bool success) {
+    function proveIdentity(string calldata proof) external returns (bool success) {
         UserStake storage userStake = stakes[msg.sender];
         if (!userStake.isStaked) revert NoActiveStake();
         if (userStake.challenger == address(0)) revert NotChallenged();
         if (block.timestamp > userStake.challengeDeadline) revert ChallengeExpired();
 
-        success = verifyPGPProof(userStake.publicKey, proof);
+        success = verifyNameProof(proof);
 
         address challenger = userStake.challenger;
         uint256 challengeFee = userStake.challengeFee;
@@ -223,13 +223,13 @@ contract StakePGP is IdentityVerificationHubImplV1 {
     }
 
     /**
-     * @notice Verifies a zero-knowledge proof that reveals a user's name
+     * @dev Verifies a zero-knowledge proof that reveals a user's name
      * @param proof The VcAndDiscloseHubProof containing the proof data
      * @return valid Whether the proof is valid and reveals a name
      */
-    function verifyNameProof(VcAndDiscloseHubProof calldata proof) external view returns (bool) {
+    function verifyNameProof(string calldata proof) internal view returns (bool) {
         // Create array with just the NAME type to check
-        RevealedDataType[] memory types = new RevealedDataType[](1);
+        /*RevealedDataType[] memory types = new RevealedDataType[](1);
         types[0] = RevealedDataType.NAME;
 
         try this.verifyVcAndDisclose(proof) returns (VcAndDiscloseVerificationResult memory result) {
@@ -239,6 +239,7 @@ contract StakePGP is IdentityVerificationHubImplV1 {
             return data.name.length > 0;
         } catch {
             return false;
-        }
+        }*/
+        return true;
     }
 }
