@@ -42,6 +42,7 @@ export const ManageStake = ({
   const [isStaking, setIsStaking] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [sessionId] = useState(uuidv4()); // Create a stable session ID
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -184,6 +185,11 @@ export const ManageStake = ({
       
       await publicClient.waitForTransactionReceipt({ hash });
       notification.success("Identity verified successfully on-chain!");
+      setShowVerifyModal(false);
+      
+      if (onStakeSuccess) {
+        onStakeSuccess();
+      }
     } catch (error: any) {
       console.error("Error verifying identity:", error);
       notification.error(error.message || "Error during verification");
@@ -318,47 +324,67 @@ export const ManageStake = ({
           <div className="card bg-base-100 shadow-xl mt-4">
             <div className="card-body">
               <div className="flex flex-col gap-4 mt-4">
-                <button 
-                  className="btn btn-error" 
-                  onClick={handleWithdraw}
-                  disabled={isWithdrawing || stakeContract.isBeingChallenged}
-                >
-                  {isWithdrawing ? (
-                    <>
-                      <span className="loading loading-spinner loading-xs"></span>
-                      Withdrawing...
-                    </>
-                  ) : (
-                    "Withdraw Stake"
-                  )}
-                </button>
+                <div className="flex gap-4">
+                  <button 
+                    className="btn btn-error flex-1" 
+                    onClick={handleWithdraw}
+                    disabled={isWithdrawing || stakeContract.isBeingChallenged}
+                  >
+                    {isWithdrawing ? (
+                      <>
+                        <span className="loading loading-spinner loading-xs"></span>
+                        Withdrawing...
+                      </>
+                    ) : (
+                      "Withdraw Stake"
+                    )}
+                  </button>
+                  <button 
+                    className="btn btn-primary flex-1"
+                    onClick={() => setShowVerifyModal(true)}
+                    disabled={isVerifying || !stakeContract.isBeingChallenged}
+                  >
+                    {isVerifying ? (
+                      <>
+                        <span className="loading loading-spinner loading-xs"></span>
+                        Verifying...
+                      </>
+                    ) : (
+                      "Verify Identity"
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="card bg-base-100 shadow-xl mt-4">
-        <div className="card-body">
-          <h2 className="card-title">Verify Identity</h2>
-          {isVerifying && (
-            <div className="alert alert-info">
-              <span className="loading loading-spinner loading-sm"></span>
-              <span>Verifying identity on-chain...</span>
+      {/* Verification Modal */}
+      {showVerifyModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Verify Your Identity</h3>
+            <p className="py-4">Scan this QR code with your OpenPassport app to verify your identity.</p>
+            <div className="flex justify-center">
+              <OpenPassportQRcode
+                appName="StakePGP"
+                userId={userId}
+                userIdType="uuid"
+                openPassportVerifier={openPassportVerifier}
+                onSuccess={handleVerification}
+                size={250}
+              />
             </div>
-          )}
-          <div className="flex flex-col gap-4 mt-4">
-            <OpenPassportQRcode
-              appName="StakePGP"
-              userId={userId}
-              userIdType="uuid"
-              openPassportVerifier={openPassportVerifier}
-              onSuccess={handleVerification}
-              size={250}
-            />
+            <div className="modal-action">
+              <button className="btn" onClick={() => setShowVerifyModal(false)}>Close</button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setShowVerifyModal(false)}>
+            <button className="cursor-default">Close</button>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 };
