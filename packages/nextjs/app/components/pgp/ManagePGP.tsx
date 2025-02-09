@@ -15,6 +15,7 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
   const [importKey, setImportKey] = useState("");
   const [isGeneratingKey, setIsGeneratingKey] = useState(false);
   const [isUploadingKey, setIsUploadingKey] = useState(false);
+  const [isImportingKey, setIsImportingKey] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [keyGenForm, setKeyGenForm] = useState({
     name: "",
@@ -32,9 +33,26 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
   const handleImportKey = async () => {
     try {
       setImportError(null);
+      setIsImportingKey(true);
+
+      // Fetch the public key from the keyserver
+      const response = await fetch(
+        `https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${importKey.replace(/\s+/g, "")}&options=mr&fingerprint=on`,
+        {
+          headers: {
+            Accept: "application/pgp-keys",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Key not found on keyserver");
+      }
+
+      const publicKey = await response.text();
 
       // Try to read and validate the public key
-      const publicKeyObj = await openpgp.readKey({ armoredKey: importKey });
+      const publicKeyObj = await openpgp.readKey({ armoredKey: publicKey });
 
       // Extract user information from the key
       const userID = publicKeyObj.users[0]?.userID;
@@ -56,7 +74,7 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
         keyId: fullKeyId,
         name: name.trim(),
         email: email.trim(),
-        publicKey: importKey,
+        publicKey,
       };
 
       setPgpIdentity(newIdentity);
@@ -65,7 +83,9 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
       localStorage.setItem("pgp_identity", JSON.stringify(newIdentity));
     } catch (error) {
       console.error("Error importing key:", error);
-      setImportError(error instanceof Error ? error.message : "Invalid PGP public key format");
+      setImportError(error instanceof Error ? error.message : "Invalid PGP key ID or key not found");
+    } finally {
+      setIsImportingKey(false);
     }
   };
 
@@ -177,15 +197,16 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
             <h2 className="card-title">Import Existing Key</h2>
           </div>
           <div className="form-control mt-4">
-            <textarea
-              className={`textarea textarea-bordered h-32 ${importError ? "textarea-error" : ""}`}
-              placeholder="Paste your PGP public key here..."
+            <input
+              type="text"
+              className={`input input-bordered ${importError ? "input-error" : ""}`}
+              placeholder="Enter your PGP key ID..."
               value={importKey}
               onChange={e => {
                 setImportKey(e.target.value);
                 setImportError(null);
               }}
-            ></textarea>
+            />
             {importError && (
               <div className="alert alert-error mt-2">
                 <ExclamationTriangleIcon className="h-5 w-5" />
@@ -193,14 +214,16 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
               </div>
             )}
             <label className="label">
-              <span className="label-text-alt">
-                The key should start with &quot;-----BEGIN PGP PUBLIC KEY BLOCK-----&quot;
-              </span>
+              <span className="label-text-alt">Enter your PGP key ID (e.g., 0x1234ABCD or 1234ABCD)</span>
             </label>
           </div>
           <div className="card-actions justify-end mt-4">
-            <button className="btn btn-primary" onClick={handleImportKey} disabled={!importKey.trim()}>
-              Import Key
+            <button
+              className={`btn btn-primary ${isImportingKey ? "loading" : ""}`}
+              onClick={handleImportKey}
+              disabled={!importKey.trim() || isImportingKey}
+            >
+              {isImportingKey ? "Importing..." : "Import Key"}
             </button>
           </div>
         </div>
@@ -312,8 +335,7 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
             </>
           )}
           <div className="flex flex-col gap-4">
-            <button className="btn btn-error">Revoke Key</button>
-            <button className="btn btn-ghost" onClick={handleLogout}>
+            <button className="btn btn-neutral" onClick={handleLogout}>
               Log out
             </button>
           </div>
