@@ -159,26 +159,11 @@ export const ManageStake = ({
         walletClient
       });
       console.log("Attestation received:", attestation);
-      
-      // Convert the proof to a string format as expected by the contract
-      const proofString = JSON.stringify({
-        olderThanEnabled: true,
-        olderThan: BigInt(18).toString(),
-        forbiddenCountriesEnabled: true,
-        forbiddenCountriesListPacked: BigInt(0).toString(),
-        ofacEnabled: true,
-        vcAndDiscloseProof: {
-          a: attestation.proof.a?.map((x: bigint) => x.toString()) || ["0", "0"],
-          b: attestation.proof.b?.map((pair: bigint[]) => pair.map(x => x.toString())) || [["0", "0"], ["0", "0"]],
-          c: attestation.proof.c?.map((x: bigint) => x.toString()) || ["0", "0"],
-          pubSignals: attestation.proof.pubSignals?.map((x: bigint) => x.toString()) || []
-        }
-      });
-
-      console.log("Proof string to send:", proofString);
-
       const hash = await stakePGPContract.write.proveIdentity(
-        [proofString]
+        [attestation.proof?.value?.proof?.pi_a,
+          attestation.proof?.value?.proof?.pi_b,
+          attestation.proof?.value?.proof?.pi_c,
+          attestation.proof?.value?.publicSignals]
       );
       
       notification.success("Verification proof sent!");

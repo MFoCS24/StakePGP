@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     StakePGP: {
-      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
       abi: [
         {
           inputs: [
@@ -63,7 +63,7 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "FailedCall",
+          name: "FailedInnerCall",
           type: "error",
         },
         {
@@ -846,9 +846,24 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "string",
-              name: "proof",
-              type: "string",
+              internalType: "uint256[2]",
+              name: "pi_a",
+              type: "uint256[2]",
+            },
+            {
+              internalType: "uint256[2][2]",
+              name: "pi_b",
+              type: "uint256[2][2]",
+            },
+            {
+              internalType: "uint256[2]",
+              name: "pi_c",
+              type: "uint256[2]",
+            },
+            {
+              internalType: "uint256[16]",
+              name: "pubSignals",
+              type: "uint256[16]",
             },
           ],
           name: "proveIdentity",

@@ -107,17 +107,24 @@ contract StakePGP is IdentityVerificationHubImplV1 {
 
     /**
      * @notice Allows a challenged user to prove their PGP identity
-     * @dev This function will be implemented later with actual PGP verification
-     * @param proof The proof data that will be used to verify the PGP identity
+     * @param pi_a First part of the Groth16 proof
+     * @param pi_b Second part of the Groth16 proof
+     * @param pi_c Third part of the Groth16 proof
+     * @param pubSignals Public signals of the proof
      * @return success Whether the proof was successful
      */
-    function proveIdentity(string calldata proof) external returns (bool success) {
+    function proveIdentity(
+        uint256[2] calldata pi_a,
+        uint256[2][2] calldata pi_b,
+        uint256[2] calldata pi_c,
+        uint256[16] calldata pubSignals
+    ) external returns (bool success) {
         UserStake storage userStake = stakes[msg.sender];
         if (!userStake.isStaked) revert NoActiveStake();
         if (userStake.challenger == address(0)) revert NotChallenged();
         if (block.timestamp > userStake.challengeDeadline) revert ChallengeExpired();
 
-        success = verifyPGPProof(proof);
+        success = verifyPGPProof(pi_a, pi_b, pi_c, pubSignals);
 
         address challenger = userStake.challenger;
         uint256 challengeFee = userStake.challengeFee;
@@ -221,11 +228,40 @@ contract StakePGP is IdentityVerificationHubImplV1 {
 
     /**
      * @dev Verifies a zero-knowledge proof of passport ownership
-     * @param proof The VcAndDiscloseHubProof containing the proof data
+     * @param pi_a First part of the Groth16 proof
+     * @param pi_b Second part of the Groth16 proof
+     * @param pi_c Third part of the Groth16 proof
+     * @param pubSignals Public signals of the proof
      * @return valid Whether the proof is valid
      */
-    function verifyPGPProof(string calldata proof) internal view returns (bool) {
-        // TODO: Implement PGP proof verification
-        return true;
+    function verifyPGPProof(
+        uint256[2] calldata pi_a,
+        uint256[2][2] calldata pi_b,
+        uint256[2] calldata pi_c,
+        uint256[16] calldata pubSignals
+    ) internal view returns (bool) {
+        // Create a VcAndDiscloseHubProof struct for verification
+        IIdentityVerificationHubV1.VcAndDiscloseHubProof memory proof;
+        
+        // Set up the proof components with fixed-size array
+        proof.vcAndDiscloseProof.a = pi_a;
+        proof.vcAndDiscloseProof.b = pi_b;
+        proof.vcAndDiscloseProof.c = pi_c;
+        proof.vcAndDiscloseProof.pubSignals = pubSignals;
+        
+        // Enable same checks as in the frontend
+        proof.ofacEnabled = true;
+        proof.olderThanEnabled = true;
+        proof.olderThan = 18;
+        
+        try IIdentityVerificationHubV1(address(this)).verifyVcAndDisclose(proof) returns (
+            IIdentityVerificationHubV1.VcAndDiscloseVerificationResult memory
+        ) {
+            // If we get here, the proof was valid
+            return true;
+        } catch {
+            // If any of the verification checks fail, return false
+            return false;
+        }
     }
 }
