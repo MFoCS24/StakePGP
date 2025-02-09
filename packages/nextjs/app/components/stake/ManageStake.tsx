@@ -165,10 +165,10 @@ export const ManageStake = ({
       });
       console.log("Attestation received:", attestation);
       const hash = await stakePGPContract.write.proveIdentity(
-        [attestation.proof?.value?.proof?.pi_a,
-          attestation.proof?.value?.proof?.pi_b,
-          attestation.proof?.value?.proof?.pi_c,
-          attestation.proof?.value?.publicSignals]
+        [attestation.proof?.value?.proof?.pi_a.slice(0, 2),
+          attestation.proof?.value?.proof?.pi_b.slice(0, 2),
+          attestation.proof?.value?.proof?.pi_c.slice(0, 2),
+          attestation.proof?.value?.publicSignals.slice(0, 16)]
       );
       
       notification.success("Verification proof sent!");

@@ -50,6 +50,7 @@ contract StakePGP is IdentityVerificationHubImplV1 {
     error AlreadyStaked();
     error NotChallenged();
     error AlreadyChallenged();
+    error ChallengeFailed();
     error ChallengeExpired();
     error ChallengePending();
     error NotChallenger();
@@ -129,18 +130,9 @@ contract StakePGP is IdentityVerificationHubImplV1 {
         address challenger = userStake.challenger;
         uint256 challengeFee = userStake.challengeFee;
         
-        if (success) {
-            // If proof is successful, transfer challenge fee to the proven user
-            _transferFunds(msg.sender, challengeFee);
-        } else {
-            // If proof fails, return challenge fee along with the stake to challenger
-            uint256 totalAmount = userStake.stakedAmount + challengeFee;
-            string memory publicKey = userStake.publicKey;
-            _transferFunds(challenger, totalAmount);
-            delete stakes[msg.sender];
-            delete keyIDToStaker[publicKey];
-        }
+        if (!success) revert ChallengeFailed();
 
+        _transferFunds(msg.sender, challengeFee);
         // Reset challenge state
         userStake.challenger = address(0);
         userStake.challengeDeadline = 0;
