@@ -22,6 +22,7 @@ export const SearchPGP = () => {
     userInfo: string;
     signatures: number;
     hasStake: boolean;
+    stakerAddress?: string;
   }
 
   const handleSearch = async () => {
@@ -68,16 +69,21 @@ export const SearchPGP = () => {
 
       // Check if this key has a stake
       let hasStake = false;
+      let stakerAddress: string | undefined;
       try {
         console.log("publicKey", publicKey);
         // Find the address that staked this key
-        const stakerAddress = await stakePGPContract?.read.keyIDToStaker([fullKeyId]);
-        console.log("stakerAddress", stakerAddress);
-        if (stakerAddress != undefined && stakerAddress !== "0x0000000000000000000000000000000000000000") {
+        const fetchedStakerAddress = await stakePGPContract?.read.keyIDToStaker([fullKeyId]);
+        console.log("stakerAddress", fetchedStakerAddress);
+        if (fetchedStakerAddress != undefined && fetchedStakerAddress !== "0x0000000000000000000000000000000000000000") {
           // Key has a stake, verify it's active
           console.log("stakePGPContract", stakePGPContract);
-          const stakeData = await stakePGPContract?.read.stakes([stakerAddress]);
+          const stakeData = await stakePGPContract?.read.stakes([fetchedStakerAddress]);
           hasStake = stakeData != undefined ? stakeData[6] : false;
+          if (hasStake) {
+            // Store the staker address if stake is active
+            stakerAddress = fetchedStakerAddress;
+          }
         }
         console.log("hasStake", hasStake);
       } catch (error) {
@@ -85,7 +91,6 @@ export const SearchPGP = () => {
         notification.error("Error checking stake");
         hasStake = false;
       }
-
 
       // Count self-certifications (signatures) on the key
       const signatures = publicKeyObj.users[0].otherCertifications?.length || 0;
@@ -95,6 +100,7 @@ export const SearchPGP = () => {
         userInfo: `${name.trim()} <${email.trim()}>`,
         signatures,
         hasStake,
+        stakerAddress,
       });
     } catch (error) {
       console.error("Error searching for key:", error);
@@ -111,7 +117,7 @@ export const SearchPGP = () => {
           <input
             type="text"
             placeholder="Search by key ID"
-            className="input input-bordered flex-1"
+            className="input input-bordered w-full max-w-xl flex-1" 
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             onKeyPress={e => e.key === "Enter" && handleSearch()}
@@ -121,7 +127,6 @@ export const SearchPGP = () => {
           </button>
         </div>
       </div>
-
 
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
@@ -168,7 +173,16 @@ export const SearchPGP = () => {
                         <XCircleIcon className="h-6 w-6 text-error" />
                       )}
                     </td>
-                    <td>-</td>
+                    <td>
+                      {searchResult.hasStake && (
+                        <button 
+                          className="btn btn-sm btn-error"
+                          onClick={() => (document.getElementById('challenge-modal') as HTMLDialogElement).showModal()}
+                        >
+                          Challenge
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ) : (
                   <tr>
@@ -182,6 +196,29 @@ export const SearchPGP = () => {
           </div>
         </div>
       </div>
+
+      {/* Challenge Modal */}
+      <dialog id="challenge-modal" className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg">Challenge Stake</h3>
+          <div className="py-4">
+            <p className="mb-4">Are you sure you want to challenge this stake?</p>
+            <p className="mb-2"><strong>Staker Address:</strong></p>
+            <p className="mb-4 break-all">{searchResult?.stakerAddress}</p>
+            <p className="mb-2"><strong>Required Challenge Amount:</strong></p>
+            <p>0.05 ETH</p>
+          </div>
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn btn-ghost mr-2">Cancel</button>
+              <button className="btn btn-error">Challenge Stake</button>
+            </form>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
     </>
   );
 };

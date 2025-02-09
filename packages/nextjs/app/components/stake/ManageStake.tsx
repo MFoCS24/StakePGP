@@ -95,8 +95,13 @@ export const ManageStake = ({
         onStakeSuccess();
       }
     } catch (error: any) {
-      console.error("Error staking:", error);
-      notification.error(error.message || "Error while staking");
+      if (error.message.includes("doesn't have enough funds")) {
+        notification.error("You don't have enough funds to stake. Please deposit more ETH to your wallet.");
+      } 
+      else {
+        console.error("Error staking:", error);
+        notification.error(error.message || "Error while staking");
+      }
     } finally {
       setIsStaking(false);
     }

@@ -10,6 +10,7 @@ import {
   ExclamationTriangleIcon,
   KeyIcon,
 } from "@heroicons/react/24/outline";
+import { notification } from "~~/utils/scaffold-eth";
 
 interface ManagePGPProps {
   pgpIdentity: PGPIdentity | null;
@@ -148,13 +149,13 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
       });
 
       if (!response.ok) {
-        throw new Error("Failed to upload key to keyserver");
+        notification.error("Failed to upload key to keyserver");
       }
 
-      alert("Key successfully uploaded to keyserver!");
+      notification.success("Key uploaded successfully!");
     } catch (error) {
       console.error("Error uploading key:", error);
-      alert("Failed to upload key to keyserver. Please try again.");
+      notification.error("Failed to upload key to keyserver. Please try again.");
     } finally {
       setIsUploadingKey(false);
     }

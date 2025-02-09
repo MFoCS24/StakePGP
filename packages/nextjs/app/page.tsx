@@ -12,6 +12,7 @@ import { formatEther } from "viem";
 import { useAccount } from "wagmi";
 import { HomeIcon } from "@heroicons/react/24/outline";
 import { useScaffoldContract } from "~~/hooks/scaffold-eth";
+import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
@@ -89,20 +90,21 @@ const Home: NextPage = () => {
           <div className="flex items-center gap-4">
             <Image src="/icon.png" width={256} height={256} alt="StakePGP Logo" className="h-16 w-auto"/>
             <h1 className="text-4xl font-bold text-primary">StakePGP</h1>
+            <RainbowKitCustomConnectButton />
           </div>
           <div className="flex items-center gap-4">
             <div className="tabs tabs-boxed bg-base-200">
-              <button className={`tab ${activeTab === "pgp" ? "bg-primary text-secondary" : "text-primary"}`} onClick={() => setActiveTab("pgp")}>
+              <button className={`tab ${activeTab === "pgp" ? "btn btn-primary btn-sm text-secondary" : "btn-sm text-primary"}`} onClick={() => setActiveTab("pgp")}>
                 Manage PGP
               </button>
               <button
-                className={`tab ${activeTab === "stake" ? "bg-primary text-secondary" : "text-primary"}`}
+                className={`tab ${activeTab === "stake" ? "btn btn-primary btn-sm text-secondary" : "btn-sm text-primary"}`}
                 onClick={() => setActiveTab("stake")}
               >
                 Manage Stake
               </button>
               <button
-                className={`tab ${activeTab === "search" ? "bg-primary text-secondary" : "text-primary"}`}
+                className={`tab ${activeTab === "search" ? "btn btn-primary btn-sm text-secondary" : "btn-sm text-primary"}`}
                 onClick={() => setActiveTab("search")}
               >
                 Search

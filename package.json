@@ -59,6 +59,7 @@
   "dependencies": {
     "@openpassport/qrcode": "^0.0.16",
     "axios": "^1.7.9",
+    "ethers": "^6.13.5",
     "openpgp": "^6.1.0"
   }
 }

@@ -7187,7 +7187,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ethers@npm:^6.13.2":
+"ethers@npm:^6.13.2, ethers@npm:^6.13.5":
   version: 6.13.5
   resolution: "ethers@npm:6.13.5"
   dependencies:
@@ -12235,6 +12235,7 @@ __metadata:
   dependencies:
     "@openpassport/qrcode": ^0.0.16
     axios: ^1.7.9
+    ethers: ^6.13.5
     husky: ^9.1.6
     lint-staged: ^15.2.10
     openpgp: ^6.1.0
