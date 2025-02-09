@@ -2,14 +2,20 @@
 
 import { useState } from "react";
 import * as openpgp from "openpgp";
-import { KeyIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import { useScaffoldContract } from "~~/hooks/scaffold-eth";
+import { notification } from "~~/utils/scaffold-eth";
 
 export const SearchPGP = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResult, setSearchResult] = useState<PGPIdentity | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
+
+  const { data: stakePGPContract } = useScaffoldContract({
+    contractName: "StakePGP",
+  });
 
   interface PGPIdentity {
     keyId: string;
@@ -60,8 +66,26 @@ export const SearchPGP = () => {
       const [, name, email] = nameMatch;
       const fullKeyId = publicKeyObj.getFingerprint().toUpperCase();
 
-      // TODO: Replace with actual contract call to check stake status
-      const hasStake = false;
+      // Check if this key has a stake
+      let hasStake = false;
+      try {
+        console.log("publicKey", publicKey);
+        // Find the address that staked this key
+        const stakerAddress = await stakePGPContract?.read.keyIDToStaker([fullKeyId]);
+        console.log("stakerAddress", stakerAddress);
+        if (stakerAddress != undefined && stakerAddress !== "0x0000000000000000000000000000000000000000") {
+          // Key has a stake, verify it's active
+          console.log("stakePGPContract", stakePGPContract);
+          const stakeData = await stakePGPContract?.read.stakes([stakerAddress]);
+          hasStake = stakeData != undefined ? stakeData[6] : false;
+        }
+        console.log("hasStake", hasStake);
+      } catch (error) {
+        console.error("Error checking stake:", error);
+        notification.error("Error checking stake");
+        hasStake = false;
+      }
+
 
       // Count self-certifications (signatures) on the key
       const signatures = publicKeyObj.users[0].otherCertifications?.length || 0;
@@ -93,10 +117,11 @@ export const SearchPGP = () => {
             onKeyPress={e => e.key === "Enter" && handleSearch()}
           />
           <button className="btn btn-square" onClick={handleSearch}>
-            <KeyIcon className="h-6 w-6" />
+            <MagnifyingGlassIcon  className="h-6 w-6 text-primary" />
           </button>
         </div>
       </div>
+
 
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">

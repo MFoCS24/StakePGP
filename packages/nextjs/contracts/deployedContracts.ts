@@ -284,6 +284,25 @@ const deployedContracts = {
         {
           inputs: [
             {
+              internalType: "string",
+              name: "",
+              type: "string",
+            },
+          ],
+          name: "keyIDToStaker",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
               internalType: "bytes",
               name: "proof",
               type: "bytes",

@@ -55,11 +55,12 @@ export const ManageStake = ({
 
     try {
       setIsStaking(true);
-      const hash = await stakePGPContract.write.stake([pgpIdentity.publicKey], { value: BigInt(stakeAmount) });
+      const hash = await stakePGPContract.write.stake([pgpIdentity.keyId], { value: BigInt(stakeAmount) });
       notification.success("Transaction sent!");
       console.log("Transaction hash:", hash);
       await publicClient.waitForTransactionReceipt({ hash });
       notification.success("Successfully staked!");
+
       if (onStakeSuccess) {
         onStakeSuccess();
       }
@@ -164,7 +165,7 @@ export const ManageStake = ({
               </div>
               <div className="card-actions justify-end">
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary text-secondary"
                   onClick={handleStake}
                   disabled={isStaking || !stakeAmount || BigInt(stakeAmount) < parseEther("0.1")}
                 >

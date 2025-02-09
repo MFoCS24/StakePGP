@@ -30,6 +30,7 @@ contract StakePGP {
     }
 
     mapping(address => UserStake) public stakes;
+    mapping(string => address) public keyIDToStaker;
     uint256 public constant CHALLENGE_DURATION = 3 days;
     uint256 public constant MINIMUM_STAKE = 0.1 ether;
     uint256 public constant CHALLENGE_FEE = 0.05 ether;
@@ -72,6 +73,7 @@ contract StakePGP {
     function stake(string calldata publicKey) external payable {
         if (msg.value < MINIMUM_STAKE) revert InsufficientStake();
         if (stakes[msg.sender].isStaked) revert AlreadyStaked();
+        if (keyIDToStaker[publicKey] != address(0)) revert AlreadyStaked();
 
         stakes[msg.sender] = UserStake({
             publicKey: publicKey,
@@ -83,6 +85,7 @@ contract StakePGP {
             isStaked: true
         });
 
+        keyIDToStaker[publicKey] = msg.sender;
         emit Staked(msg.sender, publicKey, msg.value);
     }
 
@@ -125,8 +128,10 @@ contract StakePGP {
         } else {
             // If proof fails, return challenge fee along with the stake to challenger
             uint256 totalAmount = userStake.stakedAmount + challengeFee;
+            string memory publicKey = userStake.publicKey;
             _transferFunds(challenger, totalAmount);
             delete stakes[msg.sender];
+            delete keyIDToStaker[publicKey];
         }
 
         // Reset challenge state
@@ -149,8 +154,10 @@ contract StakePGP {
         if (block.timestamp <= userStake.challengeDeadline) revert ChallengePending();
 
         uint256 totalAmount = userStake.stakedAmount + userStake.challengeFee;
-        _transferFunds(msg.sender, totalAmount);
+        string memory publicKey = userStake.publicKey;
         delete stakes[user];
+        delete keyIDToStaker[publicKey];
+        _transferFunds(msg.sender, totalAmount);
         emit ChallengeResolved(user, msg.sender, false);
     }
 
@@ -164,7 +171,9 @@ contract StakePGP {
         if (block.timestamp < userStake.stakeTimestamp + MINIMUM_STAKE_DURATION) revert StakeLocked();
 
         uint256 amount = userStake.stakedAmount;
+        string memory publicKey = userStake.publicKey;
         delete stakes[msg.sender];
+        delete keyIDToStaker[publicKey];
 
         _transferFunds(msg.sender, amount);
         emit StakeWithdrawn(msg.sender, amount);

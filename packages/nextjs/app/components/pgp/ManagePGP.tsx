@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { PGPIdentity } from "../../types/pgp";
 import * as openpgp from "openpgp";
-import { ArrowUpTrayIcon, DocumentDuplicateIcon, ExclamationTriangleIcon, KeyIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, DocumentDuplicateIcon, ExclamationTriangleIcon, KeyIcon } from "@heroicons/react/24/outline";
 
 interface ManagePGPProps {
   pgpIdentity: PGPIdentity | null;
@@ -219,7 +219,7 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
           </div>
           <div className="card-actions justify-end mt-4">
             <button
-              className={`btn btn-primary ${isImportingKey ? "loading" : ""}`}
+              className={`btn btn-primary text-secondary ${isImportingKey ? "loading" : ""}`}
               onClick={handleImportKey}
               disabled={!importKey.trim() || isImportingKey}
             >
@@ -299,7 +299,7 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
             </button>
             {pgpIdentity.privateKey && (
               <button className="btn btn-sm btn-warning gap-2" onClick={handleDownloadPrivateKey}>
-                <ArrowUpTrayIcon className="h-4 w-4" />
+                <ArrowDownTrayIcon className="h-4 w-4" />
                 Download Private Key
               </button>
             )}
@@ -325,7 +325,7 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
               </div>
               <div className="flex flex-col gap-4">
                 <button
-                  className={`btn btn-primary ${isUploadingKey ? "loading" : ""}`}
+                  className={`btn btn-primary text-secondary ${isUploadingKey ? "loading" : ""}`}
                   onClick={handleUploadToKeyserver}
                   disabled={isUploadingKey}
                 >
