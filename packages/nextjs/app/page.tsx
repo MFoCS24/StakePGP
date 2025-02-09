@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ManagePGP } from "./components/pgp/ManagePGP";
 import { SearchPGP } from "./components/search/SearchPGP";
 import { ManageStake } from "./components/stake/ManageStake";
@@ -10,7 +11,6 @@ import type { NextPage } from "next";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
 import { HomeIcon } from "@heroicons/react/24/outline";
-import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 
 const Home: NextPage = () => {
@@ -23,6 +23,35 @@ const Home: NextPage = () => {
   const { data: stakePGPContract, isLoading: isContractLoading } = useScaffoldContract({
     contractName: "StakePGP",
   });
+
+  // Fetch stake data function
+  const fetchStakeData = useCallback(async () => {
+    if (!stakePGPContract || !connectedAddress || !pgpIdentity) {
+      setStakeContract(null);
+      return;
+    }
+
+    try {
+      const data = await stakePGPContract.read.stakes([connectedAddress]);
+      // data is returned as a tuple: [publicKey, stakedAmount, challengeDeadline, stakeTimestamp, challenger, challengeFee, isStaked]
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [_, stakedAmount, challengeDeadline, stakeTimestamp, challenger, , isStaked] = data;
+
+      if (isStaked) {
+        setStakeContract({
+          amount: formatEther(stakedAmount),
+          startDate: new Date(Number(stakeTimestamp) * 1000),
+          isBeingChallenged: challenger !== "0x0000000000000000000000000000000000000000",
+          lastChallengeDate: challengeDeadline > 0n ? new Date(Number(challengeDeadline) * 1000) : undefined,
+        });
+      } else {
+        setStakeContract(null);
+      }
+    } catch (error) {
+      console.error("Error fetching stake data:", error);
+      setStakeContract(null);
+    }
+  }, [stakePGPContract, connectedAddress, pgpIdentity]);
 
   // Fetch PGP identity
   useEffect(() => {
@@ -48,76 +77,42 @@ const Home: NextPage = () => {
     fetchPGPIdentity();
   }, [connectedAddress]);
 
-  // Fetch stake data
+  // Fetch stake data only when dependencies change
   useEffect(() => {
-    const fetchStakeData = async () => {
-      if (!stakePGPContract || !connectedAddress || !pgpIdentity) {
-        setStakeContract(null);
-        return;
-      }
-
-      try {
-        const data = await stakePGPContract.read.stakes([connectedAddress]);
-        // data is returned as a tuple: [publicKey, stakedAmount, challengeDeadline, stakeTimestamp, challenger, challengeFee, isStaked]
-        const [_, stakedAmount, challengeDeadline, stakeTimestamp, challenger, , isStaked] = data;
-
-        if (isStaked) {
-          setStakeContract({
-            amount: formatEther(stakedAmount),
-            startDate: new Date(Number(stakeTimestamp) * 1000),
-            isBeingChallenged: challenger !== "0x0000000000000000000000000000000000000000",
-            lastChallengeDate: challengeDeadline > 0n 
-              ? new Date(Number(challengeDeadline) * 1000)
-              : undefined,
-          });
-        } else {
-          setStakeContract(null);
-        }
-      } catch (error) {
-        console.error("Error fetching stake data:", error);
-        setStakeContract(null);
-      }
-    };
-
     fetchStakeData();
-  }, [stakePGPContract, connectedAddress, pgpIdentity]);
+  }, [fetchStakeData]);
 
   return (
     <div className="flex flex-col gap-6 py-8 px-4 lg:px-8">
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-4xl font-bold">
-            {activeTab === "pgp" && "Manage PGP Keys"}
-            {activeTab === "stake" && "Manage Stake"}
-            {activeTab === "search" && "Search PGP Keys"}
-          </h1>
+        <div className="flex items-center justify-between bg-secondary p-4 rounded-lg shadow-md">
           <div className="flex items-center gap-4">
-            <div className="tabs tabs-boxed">
-              <button className={`tab ${activeTab === "pgp" ? "tab-active" : ""}`} onClick={() => setActiveTab("pgp")}>
+            <Image src="/icon.png" width={256} height={256} alt="StakePGP Logo" className="h-16 w-auto"/>
+            <h1 className="text-4xl font-bold text-primary">StakePGP</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="tabs tabs-boxed bg-base-200">
+              <button className={`tab ${activeTab === "pgp" ? "bg-primary text-secondary" : "text-primary"}`} onClick={() => setActiveTab("pgp")}>
                 Manage PGP
               </button>
               <button
-                className={`tab ${activeTab === "stake" ? "tab-active" : ""}`}
+                className={`tab ${activeTab === "stake" ? "bg-primary text-secondary" : "text-primary"}`}
                 onClick={() => setActiveTab("stake")}
               >
                 Manage Stake
               </button>
               <button
-                className={`tab ${activeTab === "search" ? "tab-active" : ""}`}
+                className={`tab ${activeTab === "search" ? "bg-primary text-secondary" : "text-primary"}`}
                 onClick={() => setActiveTab("search")}
               >
                 Search
               </button>
             </div>
-            <Link href="/debug" className="btn btn-sm btn-ghost gap-2">
+            <Link href="/debug" className="btn btn-sm btn-ghost gap-2 text-primary hover:bg-base-200">
               <HomeIcon className="h-4 w-4" />
               Legacy Version
             </Link>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <p className="my-2 font-medium">Connected Address:</p>
-          <Address address={connectedAddress} />
         </div>
       </div>
 
@@ -135,6 +130,7 @@ const Home: NextPage = () => {
           stakeContract={stakeContract}
           isLoadingContract={isContractLoading}
           setActiveTab={setActiveTab}
+          onStakeSuccess={fetchStakeData}
         />
       )}
       {activeTab === "search" && <SearchPGP />}

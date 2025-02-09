@@ -2,6 +2,7 @@
 
 import React, { useCallback, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Bars3Icon, HomeIcon } from "@heroicons/react/24/outline";
 import dynamic from "next/dynamic";
@@ -34,6 +35,9 @@ export const Header = () => {
   return (
     <div className="sticky lg:static top-0 navbar bg-base-100 min-h-0 flex-shrink-0 justify-between z-20 shadow-md shadow-secondary px-0 sm:px-2">
       <div className="navbar-start w-auto lg:w-1/2">
+        <Link href="/" className="flex items-center gap-2">
+          <Image src="/logo.png" alt="StakePGP Logo" width={40} height={40} className="ml-2" />
+        </Link>
         <div className="lg:hidden dropdown" ref={burgerMenuRef}>
           <label
             tabIndex={0}

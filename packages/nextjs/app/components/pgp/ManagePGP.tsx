@@ -209,7 +209,7 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <div className="flex items-center gap-2">
-            <KeyIcon className="h-6 w-6" />
+            <KeyIcon className="h-6 w-6 text-primary" />
             <h2 className="card-title">Generate New Key</h2>
           </div>
           <div className="form-control gap-4 mt-4">
@@ -252,7 +252,7 @@ export const ManagePGP = ({ pgpIdentity, isLoadingIdentity, setPgpIdentity }: Ma
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <div className="flex items-center gap-2">
-            <KeyIcon className="h-6 w-6 text-success" />
+            <KeyIcon className="h-6 w-6 text-primary" />
             <h2 className="card-title">Connected PGP Identity</h2>
           </div>
           <div className="mt-4">
