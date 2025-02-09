@@ -6,15 +6,22 @@ import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
+import { usePublicClient, useWalletClient } from "wagmi";
+import { parseEther } from "viem";
+
 
 export const SearchPGP = () => {
+  const { data: walletClient } = useWalletClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResult, setSearchResult] = useState<PGPIdentity | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
+  const [isStaking, setIsStaking] = useState(false);
+  const publicClient = usePublicClient();
 
-  const { data: stakePGPContract } = useScaffoldContract({
+  const { data: stakePGPContract, isLoading: isLoadingContract } = useScaffoldContract({
     contractName: "StakePGP",
+    walletClient,
   });
 
   interface PGPIdentity {
@@ -23,6 +30,7 @@ export const SearchPGP = () => {
     signatures: number;
     hasStake: boolean;
     stakerAddress?: string;
+    isChallengable: boolean;
   }
 
   const handleSearch = async () => {
@@ -70,6 +78,7 @@ export const SearchPGP = () => {
       // Check if this key has a stake
       let hasStake = false;
       let stakerAddress: string | undefined;
+      let isChallengable = false;
       try {
         console.log("publicKey", publicKey);
         // Find the address that staked this key
@@ -83,6 +92,7 @@ export const SearchPGP = () => {
           if (hasStake) {
             // Store the staker address if stake is active
             stakerAddress = fetchedStakerAddress;
+            isChallengable = stakeData != undefined && stakeData[4] === "0x0000000000000000000000000000000000000000";
           }
         }
         console.log("hasStake", hasStake);
@@ -101,12 +111,62 @@ export const SearchPGP = () => {
         signatures,
         hasStake,
         stakerAddress,
+        isChallengable,
       });
     } catch (error) {
       console.error("Error searching for key:", error);
       setError(error instanceof Error ? error.message : "Failed to find PGP identity");
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleChallenge = async () => {
+    if (!stakePGPContract) {
+      notification.error("Contract connection not available. Please refresh the page.");
+      return;
+    }
+    if (!searchResult?.keyId) {
+      notification.error("PGP key not available");
+      return;
+    }
+    if (!publicClient) {
+      notification.error("Network connection not available");
+      return;
+    }
+
+    if (isStaking) {
+      notification.error("Patience, you are already in the process!");
+      return;
+    }
+
+    try {
+      setIsStaking(true);
+      if (!searchResult?.stakerAddress) {
+        notification.error("No staker address found");
+        return;
+      }
+      const hash = await stakePGPContract.write.challenge(
+        [searchResult.stakerAddress],
+        { value: parseEther("0.05") }
+      );
+      notification.success("Challenge transaction sent!");
+      console.log("Transaction hash:", hash);
+      await publicClient.waitForTransactionReceipt({ hash });
+      notification.success("Successfully challenged the stake!");
+      
+      // Close the modal and refresh the search
+      (document.getElementById('challenge-modal') as HTMLDialogElement).close();
+      handleSearch();
+    } catch (error: any) {
+      if (error.message.includes("doesn't have enough funds")) {
+        notification.error("You don't have enough funds to challenge. Please deposit more ETH to your wallet.");
+      } else {
+        console.error("Error challenging stake:", error);
+        notification.error(error.message || "Error while challenging stake");
+      }
+    } finally {
+      setIsStaking(false);
     }
   };
 
@@ -177,7 +237,11 @@ export const SearchPGP = () => {
                       {searchResult.hasStake && (
                         <button 
                           className="btn btn-sm btn-error"
-                          onClick={() => (document.getElementById('challenge-modal') as HTMLDialogElement).showModal()}
+                          disabled={!searchResult.isChallengable}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            (document.getElementById('challenge-modal') as HTMLDialogElement).showModal();
+                          }}
                         >
                           Challenge
                         </button>
@@ -211,7 +275,16 @@ export const SearchPGP = () => {
           <div className="modal-action">
             <form method="dialog">
               <button className="btn btn-ghost mr-2">Cancel</button>
-              <button className="btn btn-error">Challenge Stake</button>
+              <button 
+                className="btn btn-error" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleChallenge();
+                }}
+                disabled={isStaking}
+              >
+                {isStaking ? "Challenging..." : "Challenge Stake"}
+              </button>
             </form>
           </div>
         </div>
