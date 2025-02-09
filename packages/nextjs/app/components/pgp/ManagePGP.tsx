@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { PGPIdentity } from "../../types/pgp";
 import * as openpgp from "openpgp";
-import { ArrowDownTrayIcon, DocumentDuplicateIcon, ExclamationTriangleIcon, KeyIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  DocumentDuplicateIcon,
+  ExclamationTriangleIcon,
+  KeyIcon,
+} from "@heroicons/react/24/outline";
 
 interface ManagePGPProps {
   pgpIdentity: PGPIdentity | null;
