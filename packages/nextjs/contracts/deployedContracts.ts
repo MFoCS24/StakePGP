@@ -42,6 +42,11 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "ChallengeFailed",
+          type: "error",
+        },
+        {
+          inputs: [],
           name: "ChallengePending",
           type: "error",
         },
@@ -63,7 +68,7 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "FailedInnerCall",
+          name: "FailedCall",
           type: "error",
         },
         {
