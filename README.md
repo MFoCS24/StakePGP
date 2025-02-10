@@ -83,6 +83,5 @@ The main contract `StakePGP.sol` implements:
 
 For detailed documentation on the underlying framework, visit [Scaffold-ETH 2 docs](https://docs.scaffoldeth.io).
 
-For project-specific documentation on the PGP staking system, see our [pitch deck](./pitch-deck.md).
 
 
